@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Check, Clipboard, Download, Eye, EyeOff, ImagePlus, Maximize2, RefreshCw, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Clipboard, Download, Eye, EyeOff, Maximize2, RefreshCw, Trash2 } from 'lucide-react'
 import type { Profile } from '../types/profile'
 
 interface Props {
@@ -11,7 +11,6 @@ interface Props {
   onDelete: (id: string) => void
   onRegenerate: (profile: Profile) => void
   onDownloadAvatar: (profile: Profile, index: number) => void
-  onUploadAvatar: (profile: Profile, file: File) => void
   onPreviewAvatar: (profile: Profile) => void
 }
 
@@ -25,7 +24,6 @@ function CopyButton({ value, label, onCopy }: { value: string; label: string; on
 export function ProfileCard(props: Props) {
   const { profile, index, busy, avatarDownloadsAllowed } = props
   const [showPassword, setShowPassword] = useState(false)
-  const fileInput = useRef<HTMLInputElement>(null)
   return (
     <article className="profile-card">
       <div className="avatar-column">
@@ -34,14 +32,12 @@ export function ProfileCard(props: Props) {
             <img src={profile.avatarUrl} alt={`${profile.displayName} 的演示头像`} loading="lazy" />
             <span className="avatar-zoom-cue"><Maximize2 aria-hidden="true" />查看大图</span>
           </button>
-          <span className={`source-dot ${profile.dataSource}`}>{profile.dataSource === 'api' ? 'API 占位' : '本地模拟'}</span>
+          <span className={`source-dot ${profile.avatarSource === 'local-hd-avatar' ? 'hd' : profile.dataSource}`}>
+            {profile.avatarSource === 'local-hd-avatar' ? '高清合成' : profile.dataSource === 'api' ? 'API 占位' : '本地模拟'}
+          </span>
         </div>
         <p className="mobile-avatar-tip"><Download aria-hidden="true" /><span>点开大图后<br />长按保存到相册</span></p>
-        <button type="button" className="text-button" onClick={() => fileInput.current?.click()}>
-          <ImagePlus aria-hidden="true" />上传已授权头像
-        </button>
-        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden
-          onChange={(event) => { const file = event.target.files?.[0]; if (file) props.onUploadAvatar(profile, file); event.target.value = '' }} />
+        <p className="avatar-quality-note">1024 × 1024 矢量头像 · 不对应真人</p>
       </div>
 
       <div className="profile-content">

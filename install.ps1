@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$appVersion = '1.1.6'
+$appVersion = '1.1.7'
 $repository = 'qq541253643-art/english-profile-generator'
 $installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
 $appRoot = Join-Path $installRoot 'app'
@@ -11,6 +11,12 @@ $nodeRoot = Join-Path $runtimeRoot 'node'
 $nodeExe = Join-Path $nodeRoot 'node.exe'
 $stateFile = Join-Path $installRoot 'server-state.json'
 $temporaryRoot = Join-Path $env:TEMP "EnglishProfileGenerator-$([guid]::NewGuid().ToString('N'))"
+
+function Remove-StaleInstallerFiles {
+  Get-ChildItem $env:TEMP -Directory -Filter 'EnglishProfileGenerator-*' -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -ne $temporaryRoot -and $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 function Write-Step {
   param([string]$Message)
@@ -119,6 +125,7 @@ function New-DesktopShortcut {
 
 try {
   if ($env:OS -ne 'Windows_NT') { throw '此安装器仅支持 Windows 10/11。' }
+  Remove-StaleInstallerFiles
   New-Item -ItemType Directory -Path $temporaryRoot -Force | Out-Null
   New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
 
@@ -164,9 +171,13 @@ try {
   Write-Host "桌面快捷方式：$shortcutPath" -ForegroundColor Green
   Write-Host '以后双击快捷方式即可使用；启动时会自动检查并安装最新正式版本。' -ForegroundColor Green
 
-  $launcher = Join-Path $appRoot 'windows\launcher.ps1'
-  Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') `
-    -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', "`"$launcher`"")
+  if ($env:EPG_SKIP_AUTO_LAUNCH -ne '1') {
+    $launcher = Join-Path $appRoot 'windows\launcher.ps1'
+    $launcherCommand = "& '" + $launcher.Replace("'", "''") + "'"
+    $encodedLauncherCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($launcherCommand))
+    Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') `
+      -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', $encodedLauncherCommand)
+  }
 }
 catch {
   Write-Host "`n安装失败：$($_.Exception.Message)" -ForegroundColor Red

@@ -2,12 +2,14 @@ import type { BasePerson, GenerationResult, GeneratorSettings, Profile, Progress
 import { generateBio } from '../utils/bio'
 import { generateStrongPassword } from '../utils/password'
 import { generateUniqueUsername } from '../utils/username'
+import { makeHdAvatar } from '../utils/avatar'
 import { createMockPerson } from './mockData'
 import { fetchRandomUsers, isAgeInRange } from './randomUserApi'
 
 const MAX_API_ROUNDS = 7
 
 function enrichPerson(person: BasePerson, settings: GeneratorSettings, usernames: Set<string>): Profile {
+  const id = crypto.randomUUID()
   const generatedBio = generateBio(person.firstName)
   const username = generateUniqueUsername({
     firstName: person.firstName,
@@ -19,7 +21,9 @@ function enrichPerson(person: BasePerson, settings: GeneratorSettings, usernames
   }, usernames)
   return {
     ...person,
-    id: crypto.randomUUID(),
+    id,
+    avatarUrl: makeHdAvatar(person.firstName, person.lastName, person.gender, id),
+    avatarSource: 'local-hd-avatar',
     displayName: `${person.firstName} ${person.lastName}`,
     username,
     ...generatedBio,
@@ -81,7 +85,7 @@ export async function generateProfiles(
   const usernames = new Set(existingUsernames)
   const profiles = accepted.map((person, index) => {
     const profile = enrichPerson(person, settings, usernames)
-    onProgress?.(index + 1, settings.count, '正在生成用户名、Bio 与密码…')
+    onProgress?.(index + 1, settings.count, '正在生成高清头像、用户名、Bio 与密码…')
     return profile
   })
   return { profiles, apiCount, mockCount: settings.count - apiCount, warnings }

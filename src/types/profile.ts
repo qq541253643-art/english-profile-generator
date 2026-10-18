@@ -2,7 +2,7 @@ export type Gender = 'male' | 'female'
 export type GenderFilter = 'random' | Gender
 export type UsernameStyle = 'real' | 'lifestyle' | 'interest' | 'mixed'
 export type DataSource = 'api' | 'mock'
-export type AvatarSource = 'randomuser-placeholder' | 'authorized-upload' | 'local-placeholder'
+export type AvatarSource = 'randomuser-placeholder' | 'local-hd-avatar' | 'local-placeholder'
 
 export interface PlatformRules {
   minLength: number

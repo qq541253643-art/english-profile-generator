@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-10-18
+
+### Added
+
+- 新生成资料直接使用 1024 × 1024 本地合成 SVG 高清头像，不对应真人且无需手动上传。
+- 浏览器历史自动保留最近 90 天、最多 500 条并限制在约 50 MB；Windows 日志、临时安装目录和服务器发布缓存均加入清理上限。
+
+### Changed
+
+- 删除头像上传功能；旧版 Random User 小尺寸照片只在既有历史中继续标为演示占位。
+- 服务器只保留当前版本和一个回退版本，更新器增加互斥锁与自更新。
+- Windows 自动更新改用编码命令执行，并避免安装完成时重复启动。
+
 ## [1.1.6] - 2026-10-18
 
 ### Added
@@ -79,7 +92,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...HEAD
+[1.1.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...v1.1.4

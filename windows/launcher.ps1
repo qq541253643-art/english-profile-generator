@@ -12,6 +12,28 @@ $stateFile = Join-Path $installRoot 'server-state.json'
 $logRoot = Join-Path $installRoot 'logs'
 $updateStatusFile = Join-Path $installRoot 'update-status.txt'
 
+function Invoke-LocalCleanup {
+  New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+  foreach ($logFile in Get-ChildItem $logRoot -File -ErrorAction SilentlyContinue) {
+    if ($logFile.Length -gt 1MB) {
+      $tail = Get-Content $logFile.FullName -Tail 400 -ErrorAction SilentlyContinue
+      $tail | Set-Content $logFile.FullName -Encoding UTF8
+    }
+  }
+
+  Get-ChildItem $env:TEMP -Directory -Filter 'EnglishProfileGenerator-*' -ErrorAction SilentlyContinue |
+    Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+  $backupRoot = Join-Path $installRoot 'app.backup'
+  if ((Test-Path $appRoot) -and (Test-Path $backupRoot)) {
+    $backup = Get-Item $backupRoot
+    if ($backup.LastWriteTime -lt (Get-Date).AddDays(-1)) {
+      Remove-Item $backupRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Test-AppServer {
   param([string]$Url)
   try {
@@ -58,9 +80,18 @@ function Update-AppIfNeeded {
     $updateText = [IO.File]::ReadAllText($updateScript, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
     [IO.File]::WriteAllText($updateScript, $updateText, (New-Object Text.UTF8Encoding($true)))
     $powerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $updateProcess = Start-Process -FilePath $powerShell -ArgumentList @(
-      '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', "`"$updateScript`""
-    ) -Wait -PassThru
+    $installCommand = "& '" + $updateScript.Replace("'", "''") + "'"
+    $encodedInstallCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($installCommand))
+    $previousSkipLaunch = $env:EPG_SKIP_AUTO_LAUNCH
+    $env:EPG_SKIP_AUTO_LAUNCH = '1'
+    try {
+      $updateProcess = Start-Process -FilePath $powerShell -ArgumentList @(
+        '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', $encodedInstallCommand
+      ) -Wait -PassThru
+    }
+    finally {
+      $env:EPG_SKIP_AUTO_LAUNCH = $previousSkipLaunch
+    }
     Remove-Item $updateScript -Force -ErrorAction SilentlyContinue
     if ($updateProcess.ExitCode -ne 0) { throw "自动更新退出码：$($updateProcess.ExitCode)" }
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n已自动更新：v$currentVersion -> $latestTag" |
@@ -77,9 +108,10 @@ function Update-AppIfNeeded {
 }
 
 try {
+  Invoke-LocalCleanup
   if (-not (Test-Path $nodeExe)) { throw '本地运行组件缺失，请重新执行一键安装命令。' }
   if (-not (Test-Path $serverScript)) { throw '应用文件缺失，请重新执行一键安装命令。' }
-  if (Update-AppIfNeeded) { exit 0 }
+  Update-AppIfNeeded | Out-Null
 
   if (Test-Path $stateFile) {
     try {

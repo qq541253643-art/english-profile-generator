@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.6/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.7/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -19,7 +19,7 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 
 以后双击桌面快捷方式即可使用。快捷方式会先检查 GitHub 最新正式 Release：发现新版本时自动更新后再打开；断网或检查失败时直接使用本地版本，不影响已有资料。更新状态保存在安装目录的 `update-status.txt`。
 
-重复执行同一条安装命令可以修复安装或重新创建快捷方式。浏览器 IndexedDB 中的历史资料不会因为应用更新而被删除。
+重复执行同一条安装命令可以修复安装或重新创建快捷方式。浏览器历史不会因为应用更新而整体删除，但会按保留规则自动清理。
 
 ## 手机访问
 
@@ -27,8 +27,16 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 - Windows 本地版检测到局域网地址时也会显示二维码，但要求手机与电脑处于同一局域网。
 - 手机端固定为每次生成一条资料，隐藏批量数量、表格和批量导出；桌面端继续支持 1 / 10 / 100 / 300。
 - 手机点击头像可打开大图，长按大图后按系统菜单保存到照片或下载目录。
+- 新生成资料直接使用 1024 × 1024 本地合成矢量头像，不需要逐张上传，也不对应任何真人。
 - 手机与电脑浏览器的历史资料分别保存在各自设备的 IndexedDB，不会上传或自动同步。
 - 服务器版与 Windows 本地版使用同一 GitHub Release 版本，分别自动检查更新。
+
+## 存储与自动清理
+
+- 每个浏览器的 IndexedDB 历史自动保留最近 90 天、最多 500 条，并限制在约 50 MB；密码始终不持久化。
+- Windows 启动时会收缩超过 1 MB 的运行日志，清理一天前的中断安装临时目录与过期安装备份。
+- 服务器只保留当前版本和一个回退版本，并清理源码归档、npm 缓存与过期暂存目录；服务器不保存用户生成的资料。
+- 用户主动下载到 Windows“下载”文件夹或手机相册的 CSV、Excel、ZIP、PNG 属于个人文件，不会被应用自动删除。
 
 ## 源码方式启动
 
@@ -50,7 +58,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 sudo bash deploy/server/install.sh profile.example.com
 ```
 
-服务器只保存程序文件，不接收或同步浏览器 IndexedDB 中的资料与密码。更新脚本会先安装依赖、运行自动测试和生产构建，全部通过后才切换当前版本并重启服务。
+服务器只保存程序文件，不接收或同步浏览器 IndexedDB 中的资料与密码。更新脚本会先安装依赖、运行自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
 ## 已实现功能
 
@@ -60,10 +68,10 @@ sudo bash deploy/server/install.sh profile.example.com
 - 本地英文 Bio 模板和对应中文翻译。
 - 使用 `crypto.getRandomValues` 生成默认 20 位强密码；不使用 `Math.random`。
 - 卡片 / 表格查看，搜索、筛选、批量选择、删除、去重和单条重生成。
-- IndexedDB 保存非敏感历史。密码不保存，恢复历史时为当前会话重新生成。
+- IndexedDB 保存非敏感历史。密码不保存，恢复历史时为当前会话重新生成；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
-- 上传本地已授权头像；未确认授权提示时禁用头像下载。
+- 直接生成 1024 × 1024 本地合成 SVG 高清头像，不依赖头像上传或付费图片 API。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
@@ -107,9 +115,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.1.6 -> 1.1.7
-npm run version:minor   # 1.1.6 -> 1.2.0
-npm run version:major   # 1.1.6 -> 2.0.0
+npm run version:patch   # 1.1.7 -> 1.1.8
+npm run version:minor   # 1.1.7 -> 1.2.0
+npm run version:major   # 1.1.7 -> 2.0.0
 git push --follow-tags
 ```
 

@@ -16,6 +16,8 @@ describe('Windows 一键安装与自动更新契约', () => {
     expect(installer).toContain(`$appVersion = '${packageVersion}'`)
     expect(installer).toContain('Get-FileHash -Algorithm SHA256')
     expect(installer).toContain('-EncodedCommand $encodedCommand')
+    expect(installer).toContain('Remove-StaleInstallerFiles')
+    expect(installer).toContain('EPG_SKIP_AUTO_LAUNCH')
   })
 
   it('快捷方式启动器先检查最新正式 Release，失败时保留本地版本', async () => {
@@ -25,5 +27,7 @@ describe('Windows 一键安装与自动更新契约', () => {
     expect(launcher).toContain('return $false')
     expect(launcher).toContain('update-status.txt')
     expect(launcher).toContain('New-Object Text.UTF8Encoding($true)')
+    expect(launcher).toContain('Invoke-LocalCleanup')
+    expect(launcher).toContain("-EncodedCommand', $encodedInstallCommand")
   })
 })

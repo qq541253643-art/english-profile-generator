@@ -35,6 +35,7 @@ mkdir -p "$APP_ROOT/runtime/node.new"
 tar -xJf "$APP_ROOT/cache/$archive" -C "$APP_ROOT/runtime/node.new" --strip-components=1
 rm -rf "$APP_ROOT/runtime/node"
 mv "$APP_ROOT/runtime/node.new" "$APP_ROOT/runtime/node"
+rm -f "$APP_ROOT/cache/$archive" "$APP_ROOT/cache/SHASUMS256.txt"
 
 install -m 0755 "$(dirname "$0")/update.sh" /usr/local/sbin/english-profile-generator-update
 SKIP_RESTART=1 /usr/local/sbin/english-profile-generator-update
@@ -73,6 +74,8 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/english-profile-generator-update
+StandardOutput=null
+StandardError=journal
 EOF
 
 cat >/etc/systemd/system/english-profile-generator-update.timer <<'EOF'

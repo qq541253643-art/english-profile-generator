@@ -8,6 +8,33 @@ NPM_BIN="$APP_ROOT/runtime/node/bin/npm"
 CURRENT_VERSION_FILE="$APP_ROOT/current-version"
 export PATH="$APP_ROOT/runtime/node/bin:$PATH"
 
+mkdir -p "$APP_ROOT"
+exec 9>"$APP_ROOT/update.lock"
+if ! flock -n 9; then
+  echo "Another update is already running."
+  exit 0
+fi
+
+cleanup_storage() {
+  mkdir -p "$APP_ROOT/releases" "$APP_ROOT/cache"
+  find "$APP_ROOT/releases" -mindepth 1 -maxdepth 1 -type d -name '.*.staging' -mtime +0 -exec rm -rf -- {} +
+
+  local current_path previous_kept release_path
+  current_path="$(readlink -f "$APP_ROOT/current" 2>/dev/null || true)"
+  previous_kept=0
+  while IFS= read -r release_path; do
+    [[ -z "$release_path" || "$release_path" == "$current_path" ]] && continue
+    if [[ "$previous_kept" -eq 0 ]]; then
+      previous_kept=1
+    else
+      rm -rf -- "$release_path"
+    fi
+  done < <(find "$APP_ROOT/releases" -mindepth 1 -maxdepth 1 -type d -name 'v*' -printf '%T@ %p\n' | sort -nr | cut -d' ' -f2-)
+
+  find "$APP_ROOT/cache" -maxdepth 1 -type f \( -name 'v*.tar.gz' -o -name 'node-*.tar.xz' -o -name 'SHASUMS256.txt' \) -delete
+  rm -rf "$APP_ROOT/cache/npm"
+}
+
 if [[ ! -x "$NODE_BIN" || ! -x "$NPM_BIN" ]]; then
   echo "Node.js runtime is missing under $APP_ROOT/runtime/node." >&2
   exit 1
@@ -27,6 +54,7 @@ fi
 
 current_tag="$(cat "$CURRENT_VERSION_FILE" 2>/dev/null || true)"
 if [[ "$current_tag" == "$latest_tag" && -L "$APP_ROOT/current" ]]; then
+  cleanup_storage
   echo "Already current: $latest_tag"
   exit 0
 fi
@@ -62,6 +90,8 @@ trap - EXIT
 ln -sfn "$release_path" "$APP_ROOT/current.next"
 mv -Tf "$APP_ROOT/current.next" "$APP_ROOT/current"
 printf '%s\n' "$latest_tag" > "$CURRENT_VERSION_FILE"
+install -m 0755 "$release_path/deploy/server/update.sh" /usr/local/sbin/english-profile-generator-update
+cleanup_storage
 
 if [[ "${SKIP_RESTART:-0}" != "1" ]] && systemctl cat english-profile-generator.service >/dev/null 2>&1; then
   systemctl restart english-profile-generator.service

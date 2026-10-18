@@ -14,7 +14,7 @@ const profiles: Profile[] = [
   {
     id: '2', firstName: 'Noah', lastName: 'Clark', displayName: 'Noah Clark', username: 'noahclark', age: 31,
     gender: 'male', bio: 'Documenting everyday life.', bioZh: '记录日常生活。', password: 'Bb3@abcdefghijklmno',
-    interests: ['photo'], avatarUrl: 'data:image/png;base64,AAAA', avatarSource: 'authorized-upload', dataSource: 'mock', createdAt: '2026-01-02T00:00:00.000Z',
+    interests: ['photo'], avatarUrl: 'data:image/png;base64,AAAA', avatarSource: 'local-hd-avatar', dataSource: 'mock', createdAt: '2026-01-02T00:00:00.000Z',
   },
 ]
 
