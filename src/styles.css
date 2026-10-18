@@ -180,8 +180,8 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
 .source-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #319581; }
 .source-dot.mock { background: #f8e9c8; color: #67501f; }
 .source-dot.mock::before { background: #c28f24; }
-.source-dot.hd { background: var(--accent-soft); color: var(--accent-hover); }
-.source-dot.hd::before { background: var(--accent); }
+.source-dot.photo { background: var(--accent-soft); color: var(--accent-hover); }
+.source-dot.photo::before { background: var(--accent); }
 .avatar-wrap .source-dot { position: absolute; bottom: 7px; left: 7px; box-shadow: 0 2px 4px rgba(0,0,0,.09); }
 .text-button { min-height: 36px; display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--accent); font-weight: 700; font-size: 12px; padding: 4px; }
 .text-button:hover { text-decoration: underline; text-underline-offset: 3px; }

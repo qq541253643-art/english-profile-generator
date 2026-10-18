@@ -285,7 +285,7 @@ export default function App() {
       </div>}
 
       <div className="compliance-banner">
-        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>姓名与年龄可来自 Random User；新头像为本地合成高清形象，不对应真人。旧版远程照片只作演示占位。本工具不提供批量注册、风控规避或冒名验证。</p>
+        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>`nat=us` 不保证照片与美国国籍匹配；真人风格照片来自 Random User，增强后仍只作演示占位。本工具不提供批量注册、风控规避或冒名验证。</p>
       </div>
 
       {shareUrl && <div className="share-banner">
@@ -344,8 +344,8 @@ export default function App() {
           {profiles.length > 0 && !isMobile && <section className="export-panel" aria-labelledby="export-heading">
             <div className="export-copy"><FileDown aria-hidden="true" /><div><h3 id="export-heading">导出与头像打包</h3><p>{selected.size ? `将导出所选 ${selected.size} 条` : `将导出当前筛选的 ${filtered.length} 条`}，表格与 ZIP 按同一序号对应。</p></div></div>
             <div className="rights-box">{exportNeedsRightsConfirmation
-              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解旧版头像许可限制</strong><small>旧历史中的 Random User 照片只作演示占位；新生成头像为本地合成矢量图。</small></span></label>
-              : <div className="rights-safe"><ShieldCheck aria-hidden="true" /><span><strong>高清本地合成头像</strong><small>不对应真人，可直接导出，无需逐张上传。</small></span></div>}</div>
+              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解照片许可限制</strong><small>Random User 照片会增强为 512 × 512 PNG，但仍只作演示占位，正式使用前请确认许可。</small></span></label>
+              : <div className="rights-safe"><ShieldCheck aria-hidden="true" /><span><strong>本地占位或旧版合成头像</strong><small>可直接导出，无需逐张上传。</small></span></div>}</div>
             <label className={`password-export ${includePasswords ? 'enabled' : ''}`}><input type="checkbox" checked={includePasswords} onChange={(event) => setIncludePasswords(event.target.checked)} /><span><strong>导出明文密码</strong><small>{includePasswords ? '警告：明文文件可能被他人读取，请安全保管并及时删除。' : '默认关闭，表格中不包含密码列。'}</small></span></label>
             <div className="export-actions"><button type="button" className="button secondary" onClick={() => exportCsv(exportProfiles, includePasswords)}><Download aria-hidden="true" />CSV</button><button type="button" className="button secondary" onClick={handleExcel}><Download aria-hidden="true" />Excel</button><button type="button" className="button primary" disabled={exportNeedsRightsConfirmation && !avatarRightsConfirmed} onClick={handleZip}><Archive aria-hidden="true" />头像 ZIP</button></div>
           </section>}

@@ -28,6 +28,7 @@ const version = packageData.version
 const requiredFiles = [
   join(projectRoot, 'dist', 'index.html'),
   join(projectRoot, 'scripts', 'avatar-proxy.mjs'),
+  join(projectRoot, 'scripts', 'avatar-enhancer.mjs'),
   join(projectRoot, 'scripts', 'local-server.mjs'),
   join(projectRoot, 'windows', 'launcher.ps1'),
 ]
@@ -40,6 +41,7 @@ const zip = new JSZip()
 await addDirectory(zip, join(projectRoot, 'dist'), 'app/dist')
 zip.file('app/package.json', await readFile(join(projectRoot, 'package.json')))
 zip.file('app/scripts/avatar-proxy.mjs', await readFile(join(projectRoot, 'scripts', 'avatar-proxy.mjs')))
+zip.file('app/scripts/avatar-enhancer.mjs', await readFile(join(projectRoot, 'scripts', 'avatar-enhancer.mjs')))
 zip.file('app/scripts/local-server.mjs', await readFile(join(projectRoot, 'scripts', 'local-server.mjs')))
 const launcherText = (await readFile(join(projectRoot, 'windows', 'launcher.ps1'), 'utf8')).replace(/^\uFEFF/, '')
 const launcherWithBom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(launcherText, 'utf8')])

@@ -56,7 +56,7 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     expect(Array.isArray(state.lanUrls)).toBe(true)
 
     const health = await fetch(`${state.url}/__health`).then((response) => response.json())
-    expect(health).toMatchObject({ app: 'english-profile-generator', lanUrls: expect.any(Array) })
+    expect(health).toMatchObject({ app: 'english-profile-generator', lanUrls: expect.any(Array), avatarEnhancement: 'browser' })
 
     const home = await fetch(state.url)
     expect(home.status).toBe(200)
@@ -75,5 +75,8 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
 
     const blockedProxy = await fetch(`${state.url}/__avatar?url=${encodeURIComponent('http://127.0.0.1/private.png')}`)
     expect(blockedProxy.status).toBe(403)
+
+    const unavailableEnhancement = await fetch(`${state.url}/__avatar-enhanced?url=${encodeURIComponent('https://randomuser.me/api/portraits/men/7.jpg')}`)
+    expect(unavailableEnhancement.status).toBe(503)
   })
 })

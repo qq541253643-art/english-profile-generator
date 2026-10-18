@@ -19,8 +19,8 @@ const profiles: Profile[] = [
 ]
 
 describe('头像文件名映射', () => {
-  it('按表格序号生成稳定文件名并保留格式', () => {
-    expect(avatarFilename(0, profiles[0].avatarUrl)).toBe('profile-001.jpg')
+  it('按表格序号生成稳定的增强 PNG 文件名', () => {
+    expect(avatarFilename(0, profiles[0].avatarUrl)).toBe('profile-001.png')
     expect(avatarFilename(1, profiles[1].avatarUrl)).toBe('profile-002.png')
   })
 
@@ -36,7 +36,7 @@ describe('Excel / CSV 导出', () => {
   it('默认不导出密码，且头像文件名与序号一致', () => {
     const rows = buildExportRows(profiles, false)
     expect(rows[0]['明文密码']).toBeUndefined()
-    expect(rows.map((row) => row['头像文件名'])).toEqual(['profile-001.jpg', 'profile-002.png'])
+    expect(rows.map((row) => row['头像文件名'])).toEqual(['profile-001.png', 'profile-002.png'])
     expect(createCsv(profiles, false)).not.toContain('明文密码')
   })
 

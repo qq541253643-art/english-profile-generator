@@ -35,6 +35,17 @@ cleanup_storage() {
   rm -rf "$APP_ROOT/cache/npm"
 }
 
+configure_avatar_cache() {
+  mkdir -p "$APP_ROOT/avatar-cache" /etc/systemd/system/english-profile-generator.service.d
+  chown www-data:www-data "$APP_ROOT/avatar-cache"
+  cat > /etc/systemd/system/english-profile-generator.service.d/avatar-cache.conf <<EOF
+[Service]
+Environment=EPG_AVATAR_CACHE_DIR=$APP_ROOT/avatar-cache
+ReadWritePaths=$APP_ROOT/avatar-cache
+EOF
+  systemctl daemon-reload
+}
+
 if [[ ! -x "$NODE_BIN" || ! -x "$NPM_BIN" ]]; then
   echo "Node.js runtime is missing under $APP_ROOT/runtime/node." >&2
   exit 1
@@ -81,6 +92,7 @@ fi
 
 cd "$stage_path"
 NPM_CONFIG_CACHE="$APP_ROOT/cache/npm" "$NPM_BIN" ci --no-audit --no-fund
+"$NPM_BIN" audit --omit=dev --audit-level=high
 "$NPM_BIN" test
 "$NPM_BIN" run build
 
@@ -91,6 +103,7 @@ ln -sfn "$release_path" "$APP_ROOT/current.next"
 mv -Tf "$APP_ROOT/current.next" "$APP_ROOT/current"
 printf '%s\n' "$latest_tag" > "$CURRENT_VERSION_FILE"
 install -m 0755 "$release_path/deploy/server/update.sh" /usr/local/sbin/english-profile-generator-update
+configure_avatar_cache
 cleanup_storage
 
 if [[ "${SKIP_RESTART:-0}" != "1" ]] && systemctl cat english-profile-generator.service >/dev/null 2>&1; then

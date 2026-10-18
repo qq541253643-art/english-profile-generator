@@ -3,7 +3,7 @@ set -euo pipefail
 
 DOMAIN="${1:-}"
 APP_ROOT="${APP_ROOT:-/opt/english-profile-generator}"
-NODE_VERSION="${NODE_VERSION:-v22.22.0}"
+NODE_VERSION="${NODE_VERSION:-v22.22.2}"
 
 if [[ $EUID -ne 0 ]]; then
   echo "Run this installer with sudo." >&2
@@ -25,7 +25,8 @@ case "$architecture" in
   *) echo "Unsupported server architecture: $architecture" >&2; exit 1 ;;
 esac
 
-mkdir -p "$APP_ROOT/runtime" "$APP_ROOT/cache"
+mkdir -p "$APP_ROOT/runtime" "$APP_ROOT/cache" "$APP_ROOT/avatar-cache"
+chown www-data:www-data "$APP_ROOT/avatar-cache"
 archive="node-$NODE_VERSION-$node_arch.tar.xz"
 curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/$archive" -o "$APP_ROOT/cache/$archive"
 curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/SHASUMS256.txt" -o "$APP_ROOT/cache/SHASUMS256.txt"
@@ -59,7 +60,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=full
+ReadWritePaths=$APP_ROOT/avatar-cache
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+Environment=EPG_AVATAR_CACHE_DIR=$APP_ROOT/avatar-cache
 
 [Install]
 WantedBy=multi-user.target
@@ -104,6 +107,15 @@ server {
 
     location = /__avatar {
         limit_req zone=epg_avatar burst=15 nodelay;
+        proxy_pass http://127.0.0.1:6820;
+        proxy_set_header Host 127.0.0.1;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+
+    location = /__avatar-enhanced {
+        limit_req zone=epg_avatar burst=3 nodelay;
+        proxy_read_timeout 45s;
         proxy_pass http://127.0.0.1:6820;
         proxy_set_header Host 127.0.0.1;
         proxy_set_header X-Forwarded-Proto \$scheme;

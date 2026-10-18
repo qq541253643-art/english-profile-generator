@@ -1,5 +1,5 @@
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
-const ALLOWED_PATH = /^\/api\/portraits\/(?:men|women)\/\d+\.jpg$/
+const ALLOWED_PATH = /^\/api\/portraits\/(?:men|women)\/(?:[0-9]|[1-9][0-9])\.jpg$/
 
 export function allowedAvatarUrl(value) {
   try {
@@ -27,10 +27,7 @@ function sendError(response, status, message) {
   response.end(message)
 }
 
-export async function handleAvatarProxy(requestUrl, response) {
-  const target = allowedAvatarUrl(requestUrl.searchParams.get('url') || '')
-  if (!target) return sendError(response, 403, 'Avatar URL is not allowed')
-
+export async function fetchAvatar(target) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 12_000)
   try {
@@ -39,14 +36,26 @@ export async function handleAvatarProxy(requestUrl, response) {
       redirect: 'error',
       headers: { 'User-Agent': 'EnglishProfileGenerator-AvatarProxy/1.0' },
     })
-    if (!upstream.ok) return sendError(response, 502, `Avatar upstream returned HTTP ${upstream.status}`)
+    if (!upstream.ok) throw new Error(`Avatar upstream returned HTTP ${upstream.status}`)
     const contentType = upstream.headers.get('content-type') || ''
-    if (!contentType.toLowerCase().startsWith('image/')) return sendError(response, 502, 'Avatar upstream did not return an image')
+    if (!contentType.toLowerCase().startsWith('image/')) throw new Error('Avatar upstream did not return an image')
     const declaredLength = Number(upstream.headers.get('content-length') || 0)
-    if (declaredLength > MAX_AVATAR_BYTES) return sendError(response, 413, 'Avatar is too large')
+    if (declaredLength > MAX_AVATAR_BYTES) throw new Error('Avatar is too large')
 
     const body = Buffer.from(await upstream.arrayBuffer())
-    if (body.length > MAX_AVATAR_BYTES) return sendError(response, 413, 'Avatar is too large')
+    if (body.length > MAX_AVATAR_BYTES) throw new Error('Avatar is too large')
+    return { body, contentType }
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export async function handleAvatarProxy(requestUrl, response) {
+  const target = allowedAvatarUrl(requestUrl.searchParams.get('url') || '')
+  if (!target) return sendError(response, 403, 'Avatar URL is not allowed')
+
+  try {
+    const { body, contentType } = await fetchAvatar(target)
     response.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': body.length,
@@ -59,7 +68,5 @@ export async function handleAvatarProxy(requestUrl, response) {
       ? 'Avatar upstream timed out'
       : 'Avatar upstream request failed'
     sendError(response, 502, message)
-  } finally {
-    clearTimeout(timeout)
   }
 }

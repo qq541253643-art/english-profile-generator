@@ -27,4 +27,15 @@ describe('300 条本地回退', () => {
     expect(new Set(result.profiles.map((profile) => profile.username)).size).toBe(300)
     expect(new Set(result.profiles.map((profile) => profile.avatarUrl)).size).toBe(300)
   })
+
+  it('API 可用时保留真人风格照片源，不替换成卡通头像', async () => {
+    vi.spyOn(randomUserApi, 'fetchRandomUsers').mockResolvedValue([{
+      firstName: 'Avery', lastName: 'Miller', age: 28, gender: 'female',
+      avatarUrl: 'https://randomuser.me/api/portraits/women/80.jpg',
+      avatarSource: 'randomuser-placeholder', dataSource: 'api',
+    }])
+    const result = await generateProfiles({ ...settings, count: 1 })
+    expect(result.profiles[0].avatarUrl).toContain('/api/portraits/women/80.jpg')
+    expect(result.profiles[0].avatarSource).toBe('randomuser-placeholder')
+  })
 })

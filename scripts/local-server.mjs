@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { setDefaultResultOrder } from 'node:dns'
 import { createServer } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleAvatarProxy } from './avatar-proxy.mjs'
+import { handleEnhancedAvatar, serverAvatarEnhancementAvailable } from './avatar-enhancer.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
+setDefaultResultOrder('ipv4first')
 const projectRoot = resolve(scriptDirectory, '..')
 const packageVersion = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')).version
 
@@ -98,11 +101,15 @@ const server = createServer((request, response) => {
     void handleAvatarProxy(requestUrl, response)
     return
   }
+  if (requestUrl.pathname === '/__avatar-enhanced') {
+    void handleEnhancedAvatar(requestUrl, response, request.method)
+    return
+  }
   if (requestUrl.pathname === '/__health') {
     const address = server.address()
     const port = address && typeof address !== 'string' ? address.port : requestedPort
     const lanUrls = getLanAddresses().map((lanAddress) => `http://${lanAddress}:${port}`)
-    return sendText(response, 200, JSON.stringify({ app: 'english-profile-generator', version: packageVersion, lanUrls }), 'application/json; charset=utf-8')
+    return sendText(response, 200, JSON.stringify({ app: 'english-profile-generator', version: packageVersion, lanUrls, avatarEnhancement: serverAvatarEnhancementAvailable() ? 'server' : 'browser' }), 'application/json; charset=utf-8')
   }
 
   let decodedPath

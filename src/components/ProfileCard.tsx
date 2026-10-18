@@ -32,12 +32,14 @@ export function ProfileCard(props: Props) {
             <img src={profile.avatarUrl} alt={`${profile.displayName} 的演示头像`} loading="lazy" />
             <span className="avatar-zoom-cue"><Maximize2 aria-hidden="true" />查看大图</span>
           </button>
-          <span className={`source-dot ${profile.avatarSource === 'local-hd-avatar' ? 'hd' : profile.dataSource}`}>
-            {profile.avatarSource === 'local-hd-avatar' ? '高清合成' : profile.dataSource === 'api' ? 'API 占位' : '本地模拟'}
+          <span className={`source-dot ${profile.avatarSource === 'randomuser-placeholder' ? 'photo' : profile.dataSource}`}>
+            {profile.avatarSource === 'randomuser-placeholder' ? '照片增强' : profile.avatarSource === 'local-hd-avatar' ? '旧版合成' : '本地占位'}
           </span>
         </div>
         <p className="mobile-avatar-tip"><Download aria-hidden="true" /><span>点开大图后<br />长按保存到相册</span></p>
-        <p className="avatar-quality-note">1024 × 1024 矢量头像 · 不对应真人</p>
+        <p className="avatar-quality-note">{profile.avatarSource === 'randomuser-placeholder'
+          ? '真人风格照片 · 保存为 512 × 512 增强 PNG'
+          : profile.avatarSource === 'local-hd-avatar' ? '旧版合成头像' : '断网时的本地占位头像'}</p>
       </div>
 
       <div className="profile-content">

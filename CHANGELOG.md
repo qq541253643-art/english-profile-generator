@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-10-18
+
+### Added
+
+- 公网版在服务器端使用 ESRGAN Slim x4 按需增强 Random User 真人风格照片并缓存，iPhone 只需下载已完成的图片。
+- Windows 本地版仍使用随应用分发的 ESRGAN Slim x4 模型；服务器不可用或不支持 WebGL 时会自动回退。
+- 增强头像统一输出为 512 × 512 PNG，避免追求过大尺寸带来的伪细节；服务器缓存严格限制在 Random User 的 200 个男女照片编号内。
+
+### Changed
+
+- 新生成资料恢复使用真人风格照片，不再生成卡通头像；头像上传功能仍保持删除。
+- 页面明确区分“AI 增强”和“原生高清”，避免把 128 × 128 接口原图误称为原生高清。
+
 ## [1.1.7] - 2026-10-18
 
 ### Added
@@ -92,7 +105,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...HEAD
+[1.1.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...v1.1.5
