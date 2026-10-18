@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.1.11] - 2026-10-18
+
+### Fixed
+
+- 修复 iPhone 通过明文公网 IP 访问时缺少 `crypto.randomUUID()`，导致服务器版无法生成资料的问题；兼容路径仍使用 Web Crypto 安全随机数，不使用 `Math.random`。
+
 ## [1.1.10] - 2026-10-18
 
 ### Added
@@ -125,7 +131,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...HEAD
+[1.1.11]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...v1.1.11
 [1.1.10]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...v1.1.10
 [1.1.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...v1.1.8

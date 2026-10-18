@@ -3,6 +3,7 @@ import { generateBio } from '../utils/bio'
 import { makeInitialAvatar } from '../utils/avatar'
 import { generateStrongPassword } from '../utils/password'
 import { generateUniqueUsername } from '../utils/username'
+import { generateUuid } from '../utils/uuid'
 import { createMockPerson } from './mockData'
 import { fetchRandomUsers, isAgeInRange } from './randomUserApi'
 import { assignSyntheticAvatars } from './syntheticAvatarService'
@@ -21,7 +22,7 @@ function enrichPerson(person: BasePerson, settings: GeneratorSettings, usernames
   }, usernames)
   return {
     ...person,
-    id: crypto.randomUUID(),
+    id: generateUuid(),
     displayName: `${person.firstName} ${person.lastName}`,
     username,
     ...generatedBio,
