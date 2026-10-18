@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.6/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.7/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -36,6 +36,7 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 - Windows 本地版 IndexedDB 历史自动保留最近 90 天、最多 500 条，并限制在约 50 MB。
 - 服务器版公共列表保存所有访客生成的非敏感资料 3 天，最多 5000 条且限制在约 50 MB；任何访客可查看，只有创建者浏览器能提前删除自己的资料。
 - 服务器另存轻量的 30 天去重账本：显示姓名、用户名、头像以及中英文 Bio 在所有访客之间全局不重复。提前删除资料不会释放占用，到期后自动清理；账本不保存密码。
+- 多台设备恰好同时选中同一组合时，页面会自动刷新占用表并换一套资料继续生成，无需用户手动重试。
 - 密码首次生成后随资料固定保存：服务器内部共享列表保留 3 天，Windows 本地 IndexedDB 最长保留 90 天。服务器地址目前没有登录鉴权，知道地址的人可查看列表与密码，因此这些密码只用于资料草稿，不得复用真实账号密码。
 - Windows 启动时会收缩超过 1 MB 的运行日志，清理一天前的中断安装临时目录与过期安装备份。
 - 服务器只保留当前版本和一个回退版本，并清理源码归档、npm 缓存与过期暂存目录；公共资料按 3 天规则自动清理。
@@ -120,7 +121,7 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.5 -> 1.2.6
+npm run version:patch   # 1.2.6 -> 1.2.7
 npm run version:minor   # 1.2.4 -> 1.3.0
 npm run version:major   # 1.2.4 -> 2.0.0
 git push --follow-tags

@@ -14,6 +14,14 @@ type HealthResponse = {
 }
 
 type StoredProfile = Omit<Profile, 'avatarPreviewUrl' | 'canDelete'> & { canDelete?: boolean }
+type ServerErrorPayload = { error?: string; code?: string }
+
+export class ProfileUniquenessConflictError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ProfileUniquenessConflictError'
+  }
+}
 
 const EMPTY_UNIQUENESS: GenerationUniqueness = {
   windowDays: 0,
@@ -47,8 +55,14 @@ async function serverRequest<T>(method: 'GET' | 'POST' | 'DELETE', body?: unknow
     },
     body: body ? JSON.stringify(body) : undefined,
   })
-  const payload = await response.json().catch(() => null) as ({ error?: string } & T) | null
-  if (!response.ok) throw new Error(payload?.error || `服务器历史同步失败（HTTP ${response.status}）`)
+  const payload = await response.json().catch(() => null) as (ServerErrorPayload & T) | null
+  if (!response.ok) {
+    const message = payload?.error || `服务器历史同步失败（HTTP ${response.status}）`
+    if (response.status === 409 && payload?.code === 'UNIQUENESS_CONFLICT') {
+      throw new ProfileUniquenessConflictError(message)
+    }
+    throw new Error(message)
+  }
   if (!payload) throw new Error('服务器历史同步返回了无效数据。')
   return payload
 }

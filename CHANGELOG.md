@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-10-18
+
+### Fixed
+
+- 多台设备同时生成导致服务器发现30天去重冲突时，页面现在自动刷新占用表并换一套姓名、头像和 Bio 继续生成，用户无需手动点击重试。
+- 自动换新最多执行5轮；只有未使用组合确实不足或发生其他错误时才停止，避免无限循环。
+
 ## [1.2.6] - 2026-10-18
 
 ### Added
@@ -192,7 +199,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...HEAD
+[1.2.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.3...v1.2.4

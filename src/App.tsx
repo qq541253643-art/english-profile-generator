@@ -11,7 +11,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { downloadAvatar, exportAvatarZip, prepareProfileAvatars, releaseProfileAvatar } from './services/avatarService'
 import { exportCsv, exportExcel } from './services/exportService'
 import { generateProfiles } from './services/generator'
-import { clearProfiles, deleteProfiles, getHistoryMode, loadGenerationUniqueness, loadProfiles, saveProfiles, type HistoryMode } from './services/historyService'
+import { clearProfiles, deleteProfiles, getHistoryMode, loadGenerationUniqueness, loadProfiles, ProfileUniquenessConflictError, saveProfiles, type HistoryMode } from './services/historyService'
 import type { GenerationUniqueness, GeneratorSettings, Profile } from './types/profile'
 import { DEFAULT_PLATFORM_RULES } from './utils/username'
 import packageInfo from '../package.json'
@@ -52,6 +52,7 @@ function uniquenessFromProfiles(profiles: Profile[]): GenerationUniqueness {
 }
 
 type Toast = { id: number; tone: 'success' | 'error' | 'info'; message: string }
+const MAX_UNIQUENESS_ATTEMPTS = 5
 
 export default function App() {
   const [settings, setSettings] = useState(defaultSettings)
@@ -193,33 +194,46 @@ export default function App() {
     setProgress({ completed: 0, total: generationSettings.count, message: '正在准备请求…' })
     try {
       const activeHistoryMode = historyMode === 'loading' ? await getHistoryMode() : historyMode
-      const uniqueness = activeHistoryMode === 'server'
-        ? await loadGenerationUniqueness()
-        : uniquenessFromProfiles(profiles)
-      const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
-        (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }),
-        undefined, uniqueness)
-      if (operation !== operationRef.current) return
-      setProgress({ completed: 0, total: result.profiles.length, message: '正在生成 512 × 512 高清头像…' })
-      const prepared = await prepareProfileAvatars(result.profiles,
-        (completed, total) => operation === operationRef.current
-          && setProgress({ completed, total, message: '正在生成 512 × 512 高清头像…' }))
-      if (operation !== operationRef.current) return
-      if (prepared.failed > 0) {
-        prepared.profiles.forEach(releaseProfileAvatar)
-        throw new Error(`${prepared.failed} 张头像高清处理失败，本次未保存。请稍后重试。`)
+      for (let attempt = 1; attempt <= MAX_UNIQUENESS_ATTEMPTS; attempt += 1) {
+        const uniqueness = activeHistoryMode === 'server'
+          ? await loadGenerationUniqueness()
+          : uniquenessFromProfiles(profiles)
+        const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
+          (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }),
+          undefined, uniqueness)
+        if (operation !== operationRef.current) return
+        setProgress({ completed: 0, total: result.profiles.length, message: '正在生成 512 × 512 高清头像…' })
+        const prepared = await prepareProfileAvatars(result.profiles,
+          (completed, total) => operation === operationRef.current
+            && setProgress({ completed, total, message: '正在生成 512 × 512 高清头像…' }))
+        if (operation !== operationRef.current) return
+        if (prepared.failed > 0) {
+          prepared.profiles.forEach(releaseProfileAvatar)
+          throw new Error(`${prepared.failed} 张头像高清处理失败，本次未保存。请稍后重试。`)
+        }
+        const newProfiles = prepared.profiles.map((profile) => activeHistoryMode === 'server' ? { ...profile, canDelete: true } : profile)
+        try {
+          const removedIds = await saveProfiles(newProfiles)
+          setProfiles((current) => {
+            current.filter((profile) => removedIds.includes(profile.id)).forEach(releaseProfileAvatar)
+            return [...newProfiles, ...current].filter((profile) => !removedIds.includes(profile.id))
+          })
+          setLastSummary({ apiCount: result.apiCount, mockCount: result.mockCount, warnings: result.warnings })
+          setView(preferredView(result.profiles.length))
+          setPage(1)
+          addToast(`已生成并保存 ${result.profiles.length} 条虚构资料。`)
+          if (removedIds.length) addToast(`已按保留规则自动清理 ${removedIds.length} 条较早历史。`, 'info')
+          return
+        } catch (error) {
+          newProfiles.forEach(releaseProfileAvatar)
+          if (error instanceof ProfileUniquenessConflictError && attempt < MAX_UNIQUENESS_ATTEMPTS) {
+            setProgress({ completed: 0, total: generationSettings.count, message: '发现同时生成的重复项，正在自动换一组…' })
+            continue
+          }
+          throw error
+        }
       }
-      const newProfiles = prepared.profiles.map((profile) => activeHistoryMode === 'server' ? { ...profile, canDelete: true } : profile)
-      const removedIds = await saveProfiles(newProfiles)
-      setProfiles((current) => {
-        current.filter((profile) => removedIds.includes(profile.id)).forEach(releaseProfileAvatar)
-        return [...newProfiles, ...current].filter((profile) => !removedIds.includes(profile.id))
-      })
-      setLastSummary({ apiCount: result.apiCount, mockCount: result.mockCount, warnings: result.warnings })
-      setView(preferredView(result.profiles.length))
-      setPage(1)
-      addToast(`已生成并保存 ${result.profiles.length} 条虚构资料。`)
-      if (removedIds.length) addToast(`已按保留规则自动清理 ${removedIds.length} 条较早历史。`, 'info')
+      throw new Error('当前30天未使用的资料组合不足，暂时无法生成。')
     } catch (error) {
       const message = error instanceof Error ? error.message : '生成失败'
       setGenerationError(message)
@@ -276,24 +290,40 @@ export default function App() {
     try {
       const singleSettings = { ...settings, count: 1 as const, gender: profile.gender }
       const otherProfiles = profiles.filter((item) => item.id !== profile.id)
-      const uniqueness = historyMode === 'server'
-        ? await loadGenerationUniqueness()
-        : uniquenessFromProfiles(otherProfiles)
-      const result = await generateProfiles(singleSettings, new Set(otherProfiles.map((item) => item.username)), undefined, undefined, uniqueness)
-      setProgress({ completed: 0, total: 1, message: '正在准备 512 × 512 高清头像…' })
-      const prepared = await prepareProfileAvatars(result.profiles,
-        (completed, total) => setProgress({ completed, total, message: '正在准备 512 × 512 高清头像…' }))
-      if (prepared.failed > 0) throw new Error('头像高清处理失败，请稍后重试。')
-      const replacement = historyMode === 'server' ? { ...prepared.profiles[0], canDelete: true } : prepared.profiles[0]
-      const removedIds = await saveProfiles([replacement])
-      if (removedIds.includes(replacement.id)) throw new Error('新资料未能进入历史，请稍后重试。')
-      await deleteProfiles([profile.id])
-      setProfiles((current) => current.map((item) => {
-        if (item.id !== profile.id) return item
-        releaseProfileAvatar(item)
-        return replacement
-      }).filter((item) => !removedIds.includes(item.id)))
-      addToast('已重新生成该条资料。')
+      for (let attempt = 1; attempt <= MAX_UNIQUENESS_ATTEMPTS; attempt += 1) {
+        const uniqueness = historyMode === 'server'
+          ? await loadGenerationUniqueness()
+          : uniquenessFromProfiles(otherProfiles)
+        const result = await generateProfiles(singleSettings, new Set(otherProfiles.map((item) => item.username)), undefined, undefined, uniqueness)
+        setProgress({ completed: 0, total: 1, message: '正在准备 512 × 512 高清头像…' })
+        const prepared = await prepareProfileAvatars(result.profiles,
+          (completed, total) => setProgress({ completed, total, message: '正在准备 512 × 512 高清头像…' }))
+        if (prepared.failed > 0) {
+          prepared.profiles.forEach(releaseProfileAvatar)
+          throw new Error('头像高清处理失败，请稍后重试。')
+        }
+        const replacement = historyMode === 'server' ? { ...prepared.profiles[0], canDelete: true } : prepared.profiles[0]
+        try {
+          const removedIds = await saveProfiles([replacement])
+          if (removedIds.includes(replacement.id)) throw new Error('新资料未能进入历史，请稍后重试。')
+          await deleteProfiles([profile.id])
+          setProfiles((current) => current.map((item) => {
+            if (item.id !== profile.id) return item
+            releaseProfileAvatar(item)
+            return replacement
+          }).filter((item) => !removedIds.includes(item.id)))
+          addToast('已重新生成该条资料。')
+          return
+        } catch (error) {
+          releaseProfileAvatar(replacement)
+          if (error instanceof ProfileUniquenessConflictError && attempt < MAX_UNIQUENESS_ATTEMPTS) {
+            setProgress({ completed: 0, total: 1, message: '发现同时生成的重复项，正在自动换一条…' })
+            continue
+          }
+          throw error
+        }
+      }
+      throw new Error('当前30天未使用的资料组合不足，暂时无法重新生成。')
     } catch (error) { addToast(error instanceof Error ? error.message : '重新生成失败', 'error') }
     finally { setIsGenerating(false); setProgress({ completed: 0, total: 0, message: '' }) }
   }
