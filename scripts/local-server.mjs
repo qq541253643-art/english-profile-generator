@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
+import { networkInterfaces } from 'node:os'
 import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { handleAvatarProxy } from './avatar-proxy.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
@@ -47,6 +49,20 @@ const contentTypes = new Map([
   ['.woff2', 'font/woff2'],
 ])
 
+function isPrivateIpv4(address) {
+  const parts = address.split('.').map(Number)
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false
+  return parts[0] === 10
+    || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+    || (parts[0] === 192 && parts[1] === 168)
+}
+
+function getLanAddresses() {
+  return [...new Set(Object.values(networkInterfaces()).flatMap((entries) => entries || [])
+    .filter((entry) => (entry.family === 'IPv4' || entry.family === 4) && !entry.internal && isPrivateIpv4(entry.address))
+    .map((entry) => entry.address))]
+}
+
 function sendText(response, status, body, type = 'text/plain; charset=utf-8') {
   response.writeHead(status, {
     'Content-Type': type,
@@ -63,9 +79,25 @@ const server = createServer((request, response) => {
     return sendText(response, 405, 'Method Not Allowed')
   }
 
-  const requestUrl = new URL(request.url || '/', `http://${host}`)
+  let requestHost
+  try {
+    requestHost = new URL(`http://${request.headers.host || ''}`).hostname
+  } catch {
+    return sendText(response, 400, 'Bad Request')
+  }
+  const allowedHosts = new Set(['127.0.0.1', 'localhost', ...getLanAddresses()])
+  if (!allowedHosts.has(requestHost)) return sendText(response, 403, 'Forbidden')
+
+  const requestUrl = new URL(request.url || '/', `http://${requestHost}`)
+  if (requestUrl.pathname === '/__avatar') {
+    void handleAvatarProxy(requestUrl, response)
+    return
+  }
   if (requestUrl.pathname === '/__health') {
-    return sendText(response, 200, JSON.stringify({ app: 'english-profile-generator', version: packageVersion }), 'application/json; charset=utf-8')
+    const address = server.address()
+    const port = address && typeof address !== 'string' ? address.port : requestedPort
+    const lanUrls = getLanAddresses().map((lanAddress) => `http://${lanAddress}:${port}`)
+    return sendText(response, 200, JSON.stringify({ app: 'english-profile-generator', version: packageVersion, lanUrls }), 'application/json; charset=utf-8')
   }
 
   let decodedPath
@@ -111,12 +143,14 @@ function removeOwnedStateFile() {
 server.listen(requestedPort, host, () => {
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('无法确定本地服务地址。')
-  const url = `http://${host}:${address.port}`
+  const url = `http://127.0.0.1:${address.port}`
+  const lanUrls = getLanAddresses().map((lanAddress) => `http://${lanAddress}:${address.port}`)
   if (stateFile) {
     mkdirSync(dirname(stateFile), { recursive: true })
-    writeFileSync(stateFile, JSON.stringify({ app: 'english-profile-generator', pid: process.pid, port: address.port, url }), 'utf8')
+    writeFileSync(stateFile, JSON.stringify({ app: 'english-profile-generator', pid: process.pid, port: address.port, url, lanUrls }), 'utf8')
   }
   console.log(`English Profile Generator is ready at ${url}`)
+  for (const lanUrl of lanUrls) console.log(`Phone access on the same private network: ${lanUrl}`)
 })
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

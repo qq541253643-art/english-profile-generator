@@ -14,7 +14,7 @@ async function waitForState(stateFile: string, process: ChildProcess) {
   for (let attempt = 0; attempt < 80; attempt++) {
     if (process.exitCode !== null) throw new Error(`本地服务提前退出：${process.exitCode}`)
     try {
-      return JSON.parse(await readFile(stateFile, 'utf8')) as { app: string; pid: number; url: string }
+      return JSON.parse(await readFile(stateFile, 'utf8')) as { app: string; pid: number; url: string; lanUrls: string[] }
     } catch {
       await new Promise((resolveDelay) => setTimeout(resolveDelay, 50))
     }
@@ -52,9 +52,11 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     const state = await waitForState(stateFile, server)
     expect(state.app).toBe('english-profile-generator')
     expect(state.pid).toBe(server.pid)
+    expect(state.url).toMatch(/^http:\/\/127\.0\.0\.1:/)
+    expect(Array.isArray(state.lanUrls)).toBe(true)
 
     const health = await fetch(`${state.url}/__health`).then((response) => response.json())
-    expect(health).toMatchObject({ app: 'english-profile-generator' })
+    expect(health).toMatchObject({ app: 'english-profile-generator', lanUrls: expect.any(Array) })
 
     const home = await fetch(state.url)
     expect(home.status).toBe(200)
@@ -70,5 +72,8 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
 
     const missingAsset = await fetch(`${state.url}/assets/missing.js`)
     expect(missingAsset.status).toBe(404)
+
+    const blockedProxy = await fetch(`${state.url}/__avatar?url=${encodeURIComponent('http://127.0.0.1/private.png')}`)
+    expect(blockedProxy.status).toBe(403)
   })
 })

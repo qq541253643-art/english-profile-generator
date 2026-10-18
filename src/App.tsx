@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, Archive, CheckCircle2, ChevronLeft, ChevronRight, Download, FileDown,
   Grid2X2, History, Info, LayoutList, LoaderCircle, LockKeyhole, Save, Search,
-  ShieldCheck, Sparkles, Trash2, Users, WandSparkles, X,
+  ShieldCheck, Sparkles, Trash2, Users, WandSparkles, Wifi, X,
 } from 'lucide-react'
 import { ProfileCard } from './components/ProfileCard'
 import { ProfileTable } from './components/ProfileTable'
@@ -47,6 +47,10 @@ export default function App() {
   const [includePasswords, setIncludePasswords] = useState(false)
   const [avatarRightsConfirmed, setAvatarRightsConfirmed] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [shareUrl, setShareUrl] = useState(() => (
+    ['127.0.0.1', 'localhost'].includes(window.location.hostname) ? '' : window.location.origin
+  ))
+  const [qrCodeUrl, setQrCodeUrl] = useState('')
   const operationRef = useRef(0)
 
   const addToast = (message: string, tone: Toast['tone'] = 'success') => {
@@ -65,6 +69,28 @@ export default function App() {
     }).catch(() => addToast('无法读取本地历史，可继续生成新资料。', 'error'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (shareUrl) return
+    fetch('/__health')
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((health: { app?: string; lanUrls?: string[] }) => {
+        if (health.app === 'english-profile-generator' && health.lanUrls?.[0]) setShareUrl(health.lanUrls[0])
+      })
+      .catch(() => undefined)
+  }, [shareUrl])
+
+  useEffect(() => {
+    if (!shareUrl) return
+    let active = true
+    import('qrcode').then(({ toDataURL }) => toDataURL(shareUrl, {
+      width: 176,
+      margin: 1,
+      color: { dark: '#172421', light: '#fffefa' },
+      errorCorrectionLevel: 'M',
+    })).then((dataUrl) => { if (active) setQrCodeUrl(dataUrl) }).catch(() => undefined)
+    return () => { active = false }
+  }, [shareUrl])
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase()
@@ -115,8 +141,27 @@ export default function App() {
   }
 
   const copy = async (value: string, label: string) => {
-    try { await navigator.clipboard.writeText(value); addToast(`${label}已复制。`) }
-    catch { addToast('浏览器拒绝了剪贴板权限。', 'error') }
+    try {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(value)
+          addToast(`${label}已复制。`)
+          return
+        } catch {
+          // HTTP LAN origins may expose the API but reject writes; use the legacy selection fallback.
+        }
+      }
+      const textArea = document.createElement('textarea')
+      textArea.value = value
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.append(textArea)
+      textArea.select()
+      const copied = document.execCommand('copy')
+      textArea.remove()
+      if (!copied) throw new Error('copy failed')
+      addToast(`${label}已复制。`)
+    } catch { addToast(`${label}复制失败，请手动选择文本。`, 'error') }
   }
 
   const remove = async (ids: string[]) => {
@@ -203,7 +248,13 @@ export default function App() {
       <a className="skip-link" href="#main-workspace">跳到主要内容</a>
       <header className="topbar">
         <div className="brand-mark" aria-hidden="true"><span>EP</span></div>
-        <div className="brand-copy"><h1>英文账号资料生成器</h1><p>English Profile Generator · 本地草稿工具</p></div>
+        <div className="brand-copy">
+          <div className="brand-title-row">
+            <h1>英文账号资料生成器</h1>
+            <span className="version-badge" aria-label={`当前版本 ${packageInfo.version}`}>v{packageInfo.version}</span>
+          </div>
+          <p>English Profile Generator · 本地草稿工具</p>
+        </div>
         <div className="topbar-note"><ShieldCheck aria-hidden="true" /><span>仅用于草稿与界面测试</span></div>
         <button className="button primary generate-button" type="button" disabled={isGenerating} onClick={handleGenerate}>
           {isGenerating ? <LoaderCircle className="spin" aria-hidden="true" /> : <WandSparkles aria-hidden="true" />}
@@ -219,6 +270,19 @@ export default function App() {
       <div className="compliance-banner">
         <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong> `nat=us` 不保证照片与美国国籍匹配；远程照片只作演示占位。本工具不提供批量注册、风控规避或冒名验证。</p>
       </div>
+
+      {shareUrl && <div className="share-banner">
+        {qrCodeUrl && <img src={qrCodeUrl} alt={`扫码打开 ${shareUrl}`} />}
+        <Wifi aria-hidden="true" />
+        <div>
+          <strong>手机扫码打开</strong>
+          <p>{window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+            ? '本地模式需手机与电脑处于同一局域网；公网服务器版可在任意网络访问。'
+            : '使用手机相机或微信扫码，即可在当前网络打开同一版本。'}</p>
+          <code>{shareUrl}</code>
+        </div>
+        <button type="button" className="text-button" onClick={() => copy(shareUrl, '访问地址')}>复制地址</button>
+      </div>}
 
       <main className="workspace" id="main-workspace">
         <SettingsPanel settings={settings} disabled={isGenerating} hasProfiles={profiles.length > 0} onChange={setSettings} />

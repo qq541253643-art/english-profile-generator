@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.2/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.3/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -21,6 +21,13 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 
 重复执行同一条安装命令可以修复安装或重新创建快捷方式。浏览器 IndexedDB 中的历史资料不会因为应用更新而被删除。
 
+## 手机访问
+
+- 公网服务器版会在面板中显示二维码，手机可在任意网络扫码打开。
+- Windows 本地版检测到局域网地址时也会显示二维码，但要求手机与电脑处于同一局域网。
+- 手机与电脑浏览器的历史资料分别保存在各自设备的 IndexedDB，不会上传或自动同步。
+- 服务器版与 Windows 本地版使用同一 GitHub Release 版本，分别自动检查更新。
+
 ## 源码方式启动
 
 如果需要参与开发，安装 Node.js 22 LTS 或更高版本后，在项目目录执行：
@@ -32,6 +39,16 @@ npm run start
 ```
 
 Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开发，不会创建桌面快捷方式。
+
+## Ubuntu 服务器部署
+
+仓库提供 `deploy/server/install.sh`，用于 Ubuntu 24.04 服务器。它会安装经过 SHA-256 校验的 Node.js 22、Nginx 与 Certbot，配置 systemd 服务、HTTPS 和每 15 分钟一次的 GitHub Release 自动更新检查。
+
+```bash
+sudo bash deploy/server/install.sh profile.example.com
+```
+
+服务器只保存程序文件，不接收或同步浏览器 IndexedDB 中的资料与密码。更新脚本会先安装依赖、运行自动测试和生产构建，全部通过后才切换当前版本并重启服务。
 
 ## 已实现功能
 
@@ -48,6 +65,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
+- 公网服务器与本地双通道运行，面板显示手机访问二维码。
 
 ## 数据与合规说明
 
@@ -87,9 +105,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.1.2 -> 1.1.3
-npm run version:minor   # 1.1.2 -> 1.2.0
-npm run version:major   # 1.1.2 -> 2.0.0
+npm run version:patch   # 1.1.3 -> 1.1.4
+npm run version:minor   # 1.1.3 -> 1.2.0
+npm run version:major   # 1.1.3 -> 2.0.0
 git push --follow-tags
 ```
 

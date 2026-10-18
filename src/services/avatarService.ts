@@ -2,8 +2,20 @@ import type { Profile } from '../types/profile'
 import { avatarFilename } from '../utils/avatar'
 import { downloadBlob } from './exportService'
 
+export function avatarFetchUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'https:' && parsed.hostname === 'randomuser.me' && parsed.pathname.startsWith('/api/portraits/')) {
+      return `/__avatar?url=${encodeURIComponent(parsed.href)}`
+    }
+  } catch {
+    // Data URLs and other browser-supported local sources are fetched directly.
+  }
+  return url
+}
+
 async function avatarToBlob(url: string): Promise<Blob> {
-  const response = await fetch(url)
+  const response = await fetch(avatarFetchUrl(url))
   if (!response.ok) throw new Error(`头像下载失败（HTTP ${response.status}）`)
   return response.blob()
 }

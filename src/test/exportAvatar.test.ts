@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import { buildExcelSheetData, buildExportRows, createCsv } from '../services/exportService'
 import type { Profile } from '../types/profile'
 import { avatarFilename } from '../utils/avatar'
+import { avatarFetchUrl } from '../services/avatarService'
 
 const profiles: Profile[] = [
   {
@@ -21,6 +22,13 @@ describe('头像文件名映射', () => {
   it('按表格序号生成稳定文件名并保留格式', () => {
     expect(avatarFilename(0, profiles[0].avatarUrl)).toBe('profile-001.jpg')
     expect(avatarFilename(1, profiles[1].avatarUrl)).toBe('profile-002.png')
+  })
+
+  it('远程 Random User 头像通过同源白名单代理下载', () => {
+    const url = 'https://randomuser.me/api/portraits/women/80.jpg'
+    expect(avatarFetchUrl(url)).toBe(`/__avatar?url=${encodeURIComponent(url)}`)
+    expect(avatarFetchUrl('data:image/png;base64,AAAA')).toBe('data:image/png;base64,AAAA')
+    expect(avatarFetchUrl('https://example.com/avatar.jpg')).toBe('https://example.com/avatar.jpg')
   })
 })
 

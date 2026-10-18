@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-18
+
+### Added
+
+- 顶部标题旁显示当前版本号，避免批量资料较多时必须滚动到页尾确认版本。
+- 新增手机访问二维码：公网版编码当前 HTTPS 地址，本地版显示同一局域网地址。
+- 新增 Ubuntu 服务器一键部署脚本，配置 Nginx、HTTPS、systemd 服务和每 15 分钟一次的 Release 自动更新。
+- Windows 本地服务支持受限的局域网访问，并继续保留桌面快捷方式与自动更新。
+
+### Fixed
+
+- 修复 Random User 头像能预览但因图片响应缺少 CORS 许可而无法单独下载或打包 ZIP 的问题。
+- 新增仅允许 `randomuser.me/api/portraits/` 的本地头像代理，并限制协议、域名、路径、响应类型、超时和最大文件大小。
+
 ## [1.1.2] - 2026-10-18
 
 ### Fixed
@@ -42,7 +56,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.0.0...v1.1.0
