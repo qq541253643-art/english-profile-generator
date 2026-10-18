@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.5/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.6/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -25,6 +25,8 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 
 - 公网服务器版会在面板中显示二维码，手机可在任意网络扫码打开。
 - Windows 本地版检测到局域网地址时也会显示二维码，但要求手机与电脑处于同一局域网。
+- 手机端固定为每次生成一条资料，隐藏批量数量、表格和批量导出；桌面端继续支持 1 / 10 / 100 / 300。
+- 手机点击头像可打开大图，长按大图后按系统菜单保存到照片或下载目录。
 - 手机与电脑浏览器的历史资料分别保存在各自设备的 IndexedDB，不会上传或自动同步。
 - 服务器版与 Windows 本地版使用同一 GitHub Release 版本，分别自动检查更新。
 
@@ -105,9 +107,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.1.5 -> 1.1.6
-npm run version:minor   # 1.1.5 -> 1.2.0
-npm run version:major   # 1.1.5 -> 2.0.0
+npm run version:patch   # 1.1.6 -> 1.1.7
+npm run version:minor   # 1.1.6 -> 1.2.0
+npm run version:major   # 1.1.6 -> 2.0.0
 git push --follow-tags
 ```
 

@@ -6,12 +6,13 @@ interface Props {
   settings: GeneratorSettings
   disabled: boolean
   hasProfiles: boolean
+  singleOnly?: boolean
   onChange: (settings: GeneratorSettings) => void
 }
 
 const counts = [1, 10, 100, 300] as const
 
-export function SettingsPanel({ settings, disabled, hasProfiles, onChange }: Props) {
+export function SettingsPanel({ settings, disabled, hasProfiles, singleOnly = false, onChange }: Props) {
   const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 900px)').matches)
   const [mobileOpen, setMobileOpen] = useState(!hasProfiles)
 
@@ -36,12 +37,12 @@ export function SettingsPanel({ settings, disabled, hasProfiles, onChange }: Pro
         onToggle={(event) => { if (isNarrow) setMobileOpen(event.currentTarget.open) }}>
         <summary className="panel-title">
           <SlidersHorizontal aria-hidden="true" />
-          <div><h2>生成设置</h2><p>{hasProfiles && isNarrow && !mobileOpen ? `${settings.count} 条 · ${settings.gender === 'random' ? '随机性别' : settings.gender === 'male' ? '男' : '女'} · ${settings.minAge}-${settings.maxAge} 岁` : '参数仅作用于本次草稿'}</p></div>
+          <div><h2>生成设置</h2><p>{hasProfiles && isNarrow && !mobileOpen ? `${singleOnly ? '单条' : `${settings.count} 条`} · ${settings.gender === 'random' ? '随机性别' : settings.gender === 'male' ? '男' : '女'} · ${settings.minAge}-${settings.maxAge} 岁` : singleOnly ? '手机端每次生成一条' : '参数仅作用于本次草稿'}</p></div>
           <ChevronDown className="disclosure-chevron" aria-hidden="true" />
         </summary>
         <div className="settings-fields">
 
-      <fieldset disabled={disabled}>
+      {!singleOnly && <fieldset disabled={disabled}>
         <legend>生成数量</legend>
         <div className="segmented four">
           {counts.map((count) => (
@@ -49,7 +50,7 @@ export function SettingsPanel({ settings, disabled, hasProfiles, onChange }: Pro
               onClick={() => update('count', count)} aria-pressed={settings.count === count}>{count}</button>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <label className="field-label" htmlFor="gender">性别</label>
       <div className="select-wrap">

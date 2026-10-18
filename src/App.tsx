@@ -5,6 +5,7 @@ import {
   ShieldCheck, Sparkles, Trash2, Users, WandSparkles, Wifi, X,
 } from 'lucide-react'
 import { ProfileCard } from './components/ProfileCard'
+import { AvatarPreview } from './components/AvatarPreview'
 import { ProfileTable } from './components/ProfileTable'
 import { SettingsPanel } from './components/SettingsPanel'
 import { downloadAvatar, exportAvatarZip, readAuthorizedAvatar } from './services/avatarService'
@@ -46,6 +47,8 @@ export default function App() {
   const [lastSummary, setLastSummary] = useState<{ apiCount: number; mockCount: number; warnings: string[] } | null>(null)
   const [includePasswords, setIncludePasswords] = useState(false)
   const [avatarRightsConfirmed, setAvatarRightsConfirmed] = useState(false)
+  const [previewProfile, setPreviewProfile] = useState<Profile | null>(null)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 680px)').matches)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [shareUrl, setShareUrl] = useState(() => (
     ['127.0.0.1', 'localhost'].includes(window.location.hostname) ? '' : window.location.origin
@@ -68,6 +71,21 @@ export default function App() {
       }
     }).catch(() => addToast('无法读取本地历史，可继续生成新资料。', 'error'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 680px)')
+    const applyMobileMode = () => {
+      setIsMobile(media.matches)
+      if (media.matches) {
+        setSettings((current) => current.count === 1 ? current : { ...current, count: 1 })
+        setView('cards')
+        setSelected(new Set())
+      }
+    }
+    applyMobileMode()
+    media.addEventListener('change', applyMobileMode)
+    return () => media.removeEventListener('change', applyMobileMode)
   }, [])
 
   useEffect(() => {
@@ -117,9 +135,10 @@ export default function App() {
     setIsGenerating(true)
     setGenerationError('')
     setLastSummary(null)
-    setProgress({ completed: 0, total: settings.count, message: '正在准备请求…' })
+    const generationSettings = isMobile && settings.count !== 1 ? { ...settings, count: 1 as const } : settings
+    setProgress({ completed: 0, total: generationSettings.count, message: '正在准备请求…' })
     try {
-      const result = await generateProfiles(settings, new Set(profiles.map((item) => item.username)),
+      const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
         (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }))
       if (operation !== operationRef.current) return
       setProfiles((current) => [...result.profiles, ...current])
@@ -258,7 +277,7 @@ export default function App() {
         <div className="topbar-note"><ShieldCheck aria-hidden="true" /><span>仅用于草稿与界面测试</span></div>
         <button className="button primary generate-button" type="button" disabled={isGenerating} onClick={handleGenerate}>
           {isGenerating ? <LoaderCircle className="spin" aria-hidden="true" /> : <WandSparkles aria-hidden="true" />}
-          {isGenerating ? '正在生成…' : `一键生成 ${settings.count} 条`}
+          {isGenerating ? '正在生成…' : isMobile ? '生成一条资料' : `一键生成 ${settings.count} 条`}
         </button>
       </header>
 
@@ -285,15 +304,16 @@ export default function App() {
       </div>}
 
       <main className="workspace" id="main-workspace">
-        <SettingsPanel settings={settings} disabled={isGenerating} hasProfiles={profiles.length > 0} onChange={setSettings} />
+        <SettingsPanel settings={settings} disabled={isGenerating} hasProfiles={profiles.length > 0} singleOnly={isMobile}
+          onChange={(next) => setSettings(isMobile ? { ...next, count: 1 } : next)} />
 
         <section className="results-panel" aria-label="生成结果">
           <div className="results-heading">
             <div><div className="heading-line"><h2>资料工作台</h2><span>{profiles.length} 条已保存</span></div><p>密码仅保留在当前会话，历史恢复时会重新生成。</p></div>
-            <div className="view-toggle" aria-label="查看方式">
+            {!isMobile && <div className="view-toggle" aria-label="查看方式">
               <button type="button" className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')} aria-pressed={view === 'cards'}><Grid2X2 aria-hidden="true" />卡片</button>
               <button type="button" className={view === 'table' ? 'active' : ''} onClick={() => setView('table')} aria-pressed={view === 'table'}><LayoutList aria-hidden="true" />表格</button>
-            </div>
+            </div>}
           </div>
 
           {lastSummary && <div className={`source-summary ${lastSummary.mockCount ? 'warning' : 'success'}`}>
@@ -307,23 +327,23 @@ export default function App() {
             <label className="search-field"><Search aria-hidden="true" /><span className="sr-only">搜索资料</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索姓名、用户名或 Bio" /></label>
             <select aria-label="按性别筛选" value={filterGender} onChange={(event) => setFilterGender(event.target.value as typeof filterGender)}><option value="all">全部性别</option><option value="male">男</option><option value="female">女</option></select>
             <select aria-label="按数据来源筛选" value={filterSource} onChange={(event) => setFilterSource(event.target.value as typeof filterSource)}><option value="all">全部来源</option><option value="api">远程 API</option><option value="mock">本地模拟</option></select>
-            <button type="button" className="button secondary compact" onClick={deduplicate}><Sparkles aria-hidden="true" />去重</button>
-            <button type="button" className="button secondary compact" onClick={saveHistory} disabled={!profiles.length}><Save aria-hidden="true" />保存历史</button>
+            {!isMobile && <button type="button" className="button secondary compact" onClick={deduplicate}><Sparkles aria-hidden="true" />去重</button>}
+            {!isMobile && <button type="button" className="button secondary compact" onClick={saveHistory} disabled={!profiles.length}><Save aria-hidden="true" />保存历史</button>}
           </div>
 
           {selected.size > 0 && <div className="bulk-bar"><CheckCircle2 aria-hidden="true" /><strong>已选 {selected.size} 条</strong><button type="button" onClick={() => remove([...selected])}><Trash2 aria-hidden="true" />删除所选</button><button type="button" onClick={() => setSelected(new Set())}><X aria-hidden="true" />取消选择</button></div>}
 
-          {profiles.length === 0 ? <div className="empty-state"><div className="empty-illustration" aria-hidden="true"><Users /><span /></div><h3>从一套可审阅的虚构资料开始</h3><p>设置数量和条件，然后点击右上角的一键生成。断网时会明确切换为本地模拟资料。</p><button type="button" className="button primary" onClick={handleGenerate}><WandSparkles aria-hidden="true" />生成 {settings.count} 条资料</button></div>
+          {profiles.length === 0 ? <div className="empty-state"><div className="empty-illustration" aria-hidden="true"><Users /><span /></div><h3>从一套可审阅的虚构资料开始</h3><p>{isMobile ? '设置条件后生成一条资料；断网时会明确切换为本地模拟资料。' : '设置数量和条件，然后点击右上角的一键生成。断网时会明确切换为本地模拟资料。'}</p><button type="button" className="button primary" onClick={handleGenerate}><WandSparkles aria-hidden="true" />{isMobile ? '生成一条资料' : `生成 ${settings.count} 条资料`}</button></div>
             : filtered.length === 0 ? <div className="empty-state compact-empty"><Search aria-hidden="true" /><h3>没有匹配的资料</h3><p>请调整关键词或筛选条件。</p></div>
-            : view === 'cards' ? <div className="cards-list">{visibleProfiles.map((profile) => <ProfileCard key={profile.id} profile={profile} index={profiles.indexOf(profile)} busy={isGenerating}
+            : isMobile || view === 'cards' ? <div className="cards-list">{visibleProfiles.map((profile) => <ProfileCard key={profile.id} profile={profile} index={profiles.indexOf(profile)} busy={isGenerating}
               avatarDownloadsAllowed={avatarRightsConfirmed} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
-              onDownloadAvatar={handleDownloadAvatar} onUploadAvatar={uploadAvatar} />)}</div>
+              onDownloadAvatar={handleDownloadAvatar} onUploadAvatar={uploadAvatar} onPreviewAvatar={setPreviewProfile} />)}</div>
               : <><p className="mobile-table-hint"><Info aria-hidden="true" />表格可左右滑动，或切换至卡片查看完整资料。</p><ProfileTable profiles={visibleProfiles} selected={selected} busy={isGenerating} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
                 onToggle={(id) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })} onToggleAll={toggleAll} /></>}
 
           {filtered.length > pageSize && <nav className="pagination" aria-label="结果分页"><span>第 {page} / {totalPages} 页</span><div><button type="button" className="icon-button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} aria-label="上一页"><ChevronLeft aria-hidden="true" /></button><button type="button" className="icon-button" disabled={page === totalPages} onClick={() => setPage((value) => value + 1)} aria-label="下一页"><ChevronRight aria-hidden="true" /></button></div></nav>}
 
-          {profiles.length > 0 && <section className="export-panel" aria-labelledby="export-heading">
+          {profiles.length > 0 && !isMobile && <section className="export-panel" aria-labelledby="export-heading">
             <div className="export-copy"><FileDown aria-hidden="true" /><div><h3 id="export-heading">导出与头像打包</h3><p>{selected.size ? `将导出所选 ${selected.size} 条` : `将导出当前筛选的 ${filtered.length} 条`}，表格与 ZIP 按同一序号对应。</p></div></div>
             <div className="rights-box"><label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解头像许可限制</strong><small>Random User 照片只作演示占位；正式使用前请替换为你已获授权或具有可商用许可的素材。</small></span></label></div>
             <label className={`password-export ${includePasswords ? 'enabled' : ''}`}><input type="checkbox" checked={includePasswords} onChange={(event) => setIncludePasswords(event.target.checked)} /><span><strong>导出明文密码</strong><small>{includePasswords ? '警告：明文文件可能被他人读取，请安全保管并及时删除。' : '默认关闭，表格中不包含密码列。'}</small></span></label>
@@ -335,6 +355,7 @@ export default function App() {
       </main>
 
       <footer><LockKeyhole aria-hidden="true" /><span>密码由浏览器 Web Crypto 生成 · 不使用 API 密码 · 不检查平台占用</span><span>v{packageInfo.version}</span></footer>
+      <AvatarPreview profile={previewProfile} onClose={() => setPreviewProfile(null)} />
       <div className="toast-stack" aria-live="polite">{toasts.map((toast) => <div key={toast.id} className={`toast ${toast.tone}`}>{toast.tone === 'error' ? <AlertTriangle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}<span>{toast.message}</span></div>)}</div>
     </div>
   )

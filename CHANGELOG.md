@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-10-18
+
+### Added
+
+- 手机端头像支持点击放大，并明确提示长按图片后保存到相册或下载目录。
+
+### Changed
+
+- 手机端固定为单条生成，隐藏批量数量、表格视图、去重、手动保存和批量导出；桌面端批量功能保持不变。
+
 ## [1.1.5] - 2026-10-18
 
 ### Fixed
@@ -69,7 +79,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...HEAD
+[1.1.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...v1.1.3

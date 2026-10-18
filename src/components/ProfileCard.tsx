@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Check, Clipboard, Download, Eye, EyeOff, ImagePlus, RefreshCw, Trash2 } from 'lucide-react'
+import { Check, Clipboard, Download, Eye, EyeOff, ImagePlus, Maximize2, RefreshCw, Trash2 } from 'lucide-react'
 import type { Profile } from '../types/profile'
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   onRegenerate: (profile: Profile) => void
   onDownloadAvatar: (profile: Profile, index: number) => void
   onUploadAvatar: (profile: Profile, file: File) => void
+  onPreviewAvatar: (profile: Profile) => void
 }
 
 function CopyButton({ value, label, onCopy }: { value: string; label: string; onCopy: Props['onCopy'] }) {
@@ -29,9 +30,13 @@ export function ProfileCard(props: Props) {
     <article className="profile-card">
       <div className="avatar-column">
         <div className="avatar-wrap">
-          <img src={profile.avatarUrl} alt={`${profile.displayName} 的演示头像`} loading="lazy" />
+          <button type="button" className="avatar-preview-trigger" aria-label={`放大查看 ${profile.displayName} 的头像`} onClick={() => props.onPreviewAvatar(profile)}>
+            <img src={profile.avatarUrl} alt={`${profile.displayName} 的演示头像`} loading="lazy" />
+            <span className="avatar-zoom-cue"><Maximize2 aria-hidden="true" />查看大图</span>
+          </button>
           <span className={`source-dot ${profile.dataSource}`}>{profile.dataSource === 'api' ? 'API 占位' : '本地模拟'}</span>
         </div>
+        <p className="mobile-avatar-tip"><Download aria-hidden="true" /><span>点开大图后<br />长按保存到相册</span></p>
         <button type="button" className="text-button" onClick={() => fileInput.current?.click()}>
           <ImagePlus aria-hidden="true" />上传已授权头像
         </button>
