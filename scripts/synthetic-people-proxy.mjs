@@ -1,9 +1,14 @@
+import { transcodeAvifToJpeg } from './image-codecs.mjs'
+
 const CATALOG_URL = 'https://ambravo.github.io/sigils-people/people/index.json'
 const AVATAR_ROOT = 'https://ambravo.github.io/sigils-people/portraits/l'
 const VALID_ID = /^[a-z]{2}-\d{2}$/
 const MAX_CATALOG_BYTES = 1024 * 1024
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+const AVATAR_CACHE_LIMIT = 24
 let catalogCache = null
+const avatarCache = new Map()
+const pendingAvatars = new Map()
 
 function sendError(response, status, message) {
   response.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' })
@@ -30,6 +35,34 @@ async function fetchBytes(url, maxBytes, accept) {
   }
 }
 
+function rememberAvatar(id, body) {
+  avatarCache.delete(id)
+  avatarCache.set(id, body)
+  while (avatarCache.size > AVATAR_CACHE_LIMIT) {
+    avatarCache.delete(avatarCache.keys().next().value)
+  }
+}
+
+async function loadCompatibleAvatar(id) {
+  const cached = avatarCache.get(id)
+  if (cached) {
+    rememberAvatar(id, cached)
+    return cached
+  }
+  if (!pendingAvatars.has(id)) {
+    const task = (async () => {
+      const result = await fetchBytes(`${AVATAR_ROOT}/${id}.avif`, MAX_AVATAR_BYTES, 'image/avif')
+      if (!result.contentType.includes('image/avif')) throw new Error('Portrait did not return AVIF')
+      const jpeg = await transcodeAvifToJpeg(result.body)
+      rememberAvatar(id, jpeg)
+      return jpeg
+    })()
+    pendingAvatars.set(id, task)
+    task.finally(() => pendingAvatars.delete(id)).catch(() => undefined)
+  }
+  return pendingAvatars.get(id)
+}
+
 export async function handleSyntheticCatalog(_requestUrl, response, method = 'GET') {
   try {
     if (!catalogCache || catalogCache.expiresAt < Date.now()) {
@@ -54,16 +87,18 @@ export async function handleSyntheticAvatar(requestUrl, response, method = 'GET'
   const id = requestUrl.searchParams.get('id') || ''
   if (!VALID_ID.test(id)) return sendError(response, 400, 'Invalid synthetic portrait id')
   try {
-    const result = await fetchBytes(`${AVATAR_ROOT}/${id}.avif`, MAX_AVATAR_BYTES, 'image/avif')
-    if (!result.contentType.includes('image/avif')) throw new Error('Portrait did not return AVIF')
+    const body = await loadCompatibleAvatar(id)
     response.writeHead(200, {
-      'Content-Type': 'image/avif',
-      'Content-Length': result.body.length,
+      'Content-Type': 'image/jpeg',
+      'Content-Length': body.length,
       'Cache-Control': 'public, max-age=31536000, immutable',
+      'X-Avatar-Source-Format': 'avif',
+      'X-Avatar-Compatible-Format': 'jpeg',
       'X-Content-Type-Options': 'nosniff',
     })
-    response.end(method === 'HEAD' ? undefined : result.body)
-  } catch {
+    response.end(method === 'HEAD' ? undefined : body)
+  } catch (error) {
+    console.error('Synthetic portrait conversion failed:', error instanceof Error ? error.message : 'Unknown error')
     sendError(response, 502, 'Synthetic portrait is unavailable')
   }
 }

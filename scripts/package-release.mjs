@@ -30,11 +30,14 @@ const requiredFiles = [
   join(projectRoot, 'scripts', 'avatar-proxy.mjs'),
   join(projectRoot, 'scripts', 'avatar-enhancer.mjs'),
   join(projectRoot, 'scripts', 'random-user-proxy.mjs'),
+  join(projectRoot, 'scripts', 'image-codecs.mjs'),
   join(projectRoot, 'scripts', 'synthetic-people-proxy.mjs'),
   join(projectRoot, 'scripts', 'local-server.mjs'),
   join(projectRoot, 'scripts', 'profile-store.mjs'),
   join(projectRoot, 'windows', 'launcher.ps1'),
   join(projectRoot, 'windows', 'launcher.vbs'),
+  join(projectRoot, 'node_modules', '@jsquash', 'avif'),
+  join(projectRoot, 'node_modules', '@jsquash', 'jpeg'),
 ]
 
 for (const path of requiredFiles) {
@@ -47,6 +50,7 @@ zip.file('app/package.json', await readFile(join(projectRoot, 'package.json')))
 zip.file('app/scripts/avatar-proxy.mjs', await readFile(join(projectRoot, 'scripts', 'avatar-proxy.mjs')))
 zip.file('app/scripts/avatar-enhancer.mjs', await readFile(join(projectRoot, 'scripts', 'avatar-enhancer.mjs')))
 zip.file('app/scripts/random-user-proxy.mjs', await readFile(join(projectRoot, 'scripts', 'random-user-proxy.mjs')))
+zip.file('app/scripts/image-codecs.mjs', await readFile(join(projectRoot, 'scripts', 'image-codecs.mjs')))
 zip.file('app/scripts/synthetic-people-proxy.mjs', await readFile(join(projectRoot, 'scripts', 'synthetic-people-proxy.mjs')))
 zip.file('app/scripts/local-server.mjs', await readFile(join(projectRoot, 'scripts', 'local-server.mjs')))
 zip.file('app/scripts/profile-store.mjs', await readFile(join(projectRoot, 'scripts', 'profile-store.mjs')))
@@ -54,6 +58,8 @@ const launcherText = (await readFile(join(projectRoot, 'windows', 'launcher.ps1'
 const launcherWithBom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(launcherText, 'utf8')])
 zip.file('app/windows/launcher.ps1', launcherWithBom)
 zip.file('app/windows/launcher.vbs', await readFile(join(projectRoot, 'windows', 'launcher.vbs')))
+await addDirectory(zip, join(projectRoot, 'node_modules', '@jsquash', 'avif'), 'app/node_modules/@jsquash/avif')
+await addDirectory(zip, join(projectRoot, 'node_modules', '@jsquash', 'jpeg'), 'app/node_modules/@jsquash/jpeg')
 
 const archive = await zip.generateAsync({
   type: 'nodebuffer',

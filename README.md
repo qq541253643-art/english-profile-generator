@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.1/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.2/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -60,7 +60,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 sudo bash deploy/server/install.sh profile.example.com
 ```
 
-服务器将非敏感资料同步到所有访客共同可见的公共列表并保留 3 天，但绝不接收密码或浏览器生成的头像 Blob。高清合成人像由浏览器按条件选取并在当前会话中转换。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
+服务器将非敏感资料同步到所有访客共同可见的公共列表并保留 3 天，但绝不接收密码或浏览器生成的头像 Blob。启动服务会先把头像源的 1024px AVIF 转成兼容 JPEG，浏览器再在当前会话中生成 512 × 512 PNG，因此也支持停留在 iOS 15 的 iPhone 7。转换结果仅在内存保留最近 24 张，不写入长期磁盘缓存。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
 ## 已实现功能
 
@@ -73,7 +73,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - Windows 本地版以 IndexedDB 保存非敏感历史。密码不保存，恢复历史时为当前会话重新生成；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用所有访客共同可见、保留 3 天的公共列表。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
-- sigils-people 高清合成人像源图为 1024px AVIF，下载统一转换为 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。
+- sigils-people 高清合成人像源图为 1024px AVIF，启动服务先转为旧版 Safari 兼容的高质量 JPEG，浏览器统一输出 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
@@ -98,7 +98,7 @@ https://randomuser.me/api/1.4/?nat=us&results=1&inc=gender,name,dob,picture,nat
 - Tailwind CSS 4（设计令牌与布局样式保留在本地 CSS）
 - IndexedDB (`idb`)
 - `write-excel-file` 与 JSZip，均在导出时懒加载
-- 原生 1024px AVIF 合成人像，浏览器本地转换为 512px PNG
+- 原生 1024px AVIF 合成人像，启动服务兼容转码后由浏览器生成 512px PNG
 - Lucide React 图标
 - Vitest + Testing Library
 
@@ -118,9 +118,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.1 -> 1.2.2
-npm run version:minor   # 1.2.1 -> 1.3.0
-npm run version:major   # 1.2.1 -> 2.0.0
+npm run version:patch   # 1.2.2 -> 1.2.3
+npm run version:minor   # 1.2.2 -> 1.3.0
+npm run version:major   # 1.2.2 -> 2.0.0
 git push --follow-tags
 ```
 

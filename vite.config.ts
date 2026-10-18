@@ -1,9 +1,27 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { handleSyntheticAvatar } from './scripts/synthetic-people-proxy.mjs'
+
+function compatibleAvatarDevProxy() {
+  return {
+    name: 'compatible-avatar-dev-proxy',
+    configureServer(server: { middlewares: { use: (handler: (request: { url?: string; method?: string }, response: import('node:http').ServerResponse, next: () => void) => void) => void } }) {
+      server.middlewares.use((request, response, next) => {
+        const requestUrl = new URL(request.url || '/', 'http://127.0.0.1')
+        if (requestUrl.pathname !== '/__synthetic-avatar') return next()
+        if (request.method !== 'GET' && request.method !== 'HEAD') {
+          response.writeHead(405, { Allow: 'GET, HEAD' })
+          return response.end('Method Not Allowed')
+        }
+        void handleSyntheticAvatar(requestUrl, response, request.method)
+      })
+    },
+  }
+}
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [compatibleAvatarDevProxy(), react(), tailwindcss()],
   build: {
     target: 'safari15',
     cssTarget: 'safari15',
@@ -35,15 +53,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: () => '/sigils-people/people/index.json',
-      },
-      '/__synthetic-avatar': {
-        target: 'https://ambravo.github.io',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => {
-          const id = new URL(path, 'http://127.0.0.1').searchParams.get('id') || ''
-          return /^[a-z]{2}-\d{2}$/.test(id) ? `/sigils-people/portraits/l/${id}.avif` : '/__invalid_synthetic_avatar__'
-        },
       },
     },
   },

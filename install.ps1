@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$appVersion = '1.2.1'
+$appVersion = '1.2.2'
 $repository = 'qq541253643-art/english-profile-generator'
 $installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
 $appRoot = Join-Path $installRoot 'app'
@@ -212,6 +212,9 @@ try {
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'dist\index.html'))) { throw '应用包缺少网页构建产物。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\avatar-proxy.mjs'))) { throw '应用包缺少头像下载代理。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\synthetic-people-proxy.mjs'))) { throw '应用包缺少高清合成人像代理。' }
+  if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\image-codecs.mjs'))) { throw '应用包缺少旧版手机图片兼容组件。' }
+  if (-not (Test-Path (Join-Path $sourceRoot.FullName 'node_modules\@jsquash\avif\codec\dec\avif_dec.wasm'))) { throw '应用包缺少 AVIF 解码组件。' }
+  if (-not (Test-Path (Join-Path $sourceRoot.FullName 'node_modules\@jsquash\jpeg\codec\enc\mozjpeg_enc.wasm'))) { throw '应用包缺少 JPEG 编码组件。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\local-server.mjs'))) { throw '应用包缺少本地服务组件。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'windows\launcher.ps1'))) { throw '应用包缺少 Windows 启动器。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'windows\launcher.vbs'))) { throw '应用包缺少无窗口启动器。' }

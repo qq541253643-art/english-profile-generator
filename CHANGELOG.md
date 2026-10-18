@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-18
+
+### Fixed
+
+- 修复 iPhone 7 / iOS 15 无法解码合成人像源 AVIF、点击生成后整批失败的问题；本地启动服务和公网服务器现统一先把 1024px AVIF 转为高质量 JPEG，再交给浏览器生成 512 × 512 PNG。
+- 头像格式转换使用跨平台 WebAssembly，Windows 安装包内置运行组件；仅在内存保留最近 24 张转换结果，不新增无限增长的磁盘缓存。
+- Vite 开发环境与正式版本使用同一兼容头像链路，并新增 AVIF→JPEG 自动测试。
+
 ## [1.2.1] - 2026-10-18
 
 ### Fixed
@@ -151,7 +159,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...v1.2.0
 [1.1.11]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...v1.1.11
