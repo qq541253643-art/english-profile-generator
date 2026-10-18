@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.8/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.9/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -76,7 +76,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - Windows 本地版以 IndexedDB 保存历史和生成时的密码，恢复后密码不变；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用内部成员共同可见、保留 3 天的共享列表，跨设备显示同一密码；独立去重账本保证姓名、用户名、头像和 Bio 30 天内不重复。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
-- sigils-people 高清合成人像源图为 512px AVIF，启动服务先转为旧版 Safari 兼容的高质量 JPEG，浏览器统一输出 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。桌面批量生成最多同时准备 4 张头像，减少等待时间。
+- sigils-people 高清合成人像源图为 512px AVIF，启动服务先转为旧版 Safari 兼容的高质量 JPEG，浏览器统一输出 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。桌面批量生成最多同时准备 4 张头像，源站瞬时断连会自动重试一次。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
@@ -121,7 +121,7 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.7 -> 1.2.8
+npm run version:patch   # 1.2.8 -> 1.2.9
 npm run version:minor   # 1.2.4 -> 1.3.0
 npm run version:major   # 1.2.4 -> 2.0.0
 git push --follow-tags

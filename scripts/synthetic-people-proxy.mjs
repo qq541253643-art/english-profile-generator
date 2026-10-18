@@ -8,6 +8,7 @@ const VALID_ID = /^[a-z]{2}-\d{2}$/
 const MAX_CATALOG_BYTES = 1024 * 1024
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const AVATAR_CACHE_LIMIT = 24
+const AVATAR_FETCH_ATTEMPTS = 2
 let catalogCache = null
 const avatarCache = new Map()
 const pendingAvatars = new Map()
@@ -53,11 +54,20 @@ async function loadCompatibleAvatar(id) {
   }
   if (!pendingAvatars.has(id)) {
     const task = (async () => {
-      const result = await fetchBytes(`${AVATAR_ROOT}/${id}.avif`, MAX_AVATAR_BYTES, 'image/avif')
-      if (!result.contentType.includes('image/avif')) throw new Error('Portrait did not return AVIF')
-      const jpeg = await transcodeAvifToJpeg(result.body)
-      rememberAvatar(id, jpeg)
-      return jpeg
+      let lastError
+      for (let attempt = 1; attempt <= AVATAR_FETCH_ATTEMPTS; attempt += 1) {
+        try {
+          const result = await fetchBytes(`${AVATAR_ROOT}/${id}.avif`, MAX_AVATAR_BYTES, 'image/avif')
+          if (!result.contentType.includes('image/avif')) throw new Error('Portrait did not return AVIF')
+          const jpeg = await transcodeAvifToJpeg(result.body)
+          rememberAvatar(id, jpeg)
+          return jpeg
+        } catch (error) {
+          lastError = error
+          if (attempt < AVATAR_FETCH_ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, 200))
+        }
+      }
+      throw lastError
     })()
     pendingAvatars.set(id, task)
     task.finally(() => pendingAvatars.delete(id)).catch(() => undefined)

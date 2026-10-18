@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.9] - 2026-10-18
+
+### Fixed
+
+- 高清头像源在批量并发时偶发瞬时断连，服务器现在自动重试一次，不再要求用户手动重试。
+
 ## [1.2.8] - 2026-10-18
 
 ### Changed
@@ -206,7 +212,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.8...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.9...HEAD
+[1.2.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.8...v1.2.9
 [1.2.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.5...v1.2.6

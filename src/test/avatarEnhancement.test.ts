@@ -30,6 +30,7 @@ describe('真人照片 AI 增强', () => {
     ])
     expect(syntheticProxy).toContain('/portraits/m')
     expect(syntheticProxy).not.toContain('/portraits/l')
+    expect(syntheticProxy).toContain('AVATAR_FETCH_ATTEMPTS = 2')
     expect(service).toContain('Math.min(4, profiles.length)')
     expect(service).toContain("set('format', 'jpeg-v2')")
   })
