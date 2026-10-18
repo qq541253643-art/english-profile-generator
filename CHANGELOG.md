@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-18
+
+### Fixed
+
+- 修复 Windows PowerShell 5.1 将 Release 校验文件读取为字节数组时，一键安装在 SHA-256 校验阶段中止的问题。
+
 ## [1.1.0] - 2026-10-18
 
 ### Added
@@ -29,6 +35,7 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/qq541253643-art/english-profile-generator/releases/tag/v1.0.0

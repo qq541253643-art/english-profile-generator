@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$appVersion = '1.1.0'
+$appVersion = '1.1.1'
 $repository = 'qq541253643-art/english-profile-generator'
 $installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
 $appRoot = Join-Path $installRoot 'app'
@@ -20,11 +20,6 @@ function Write-Step {
 function Invoke-Download {
   param([string]$Uri, [string]$OutFile)
   Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $OutFile -Headers @{ 'User-Agent' = 'EnglishProfileGenerator-Installer' }
-}
-
-function Get-TextContent {
-  param([string]$Uri)
-  return (Invoke-WebRequest -UseBasicParsing -Uri $Uri -Headers @{ 'User-Agent' = 'EnglishProfileGenerator-Installer' }).Content
 }
 
 function Test-AppServer {
@@ -133,9 +128,11 @@ try {
   $assetName = "english-profile-generator-windows-v$appVersion.zip"
   $releaseBase = "https://github.com/$repository/releases/download/v$appVersion"
   $sourceArchive = Join-Path $temporaryRoot $assetName
+  $checksumPath = Join-Path $temporaryRoot "$assetName.sha256"
   $sourceContainer = Join-Path $temporaryRoot 'source'
   Invoke-Download -Uri "$releaseBase/$assetName" -OutFile $sourceArchive
-  $checksumText = Get-TextContent -Uri "$releaseBase/$assetName.sha256"
+  Invoke-Download -Uri "$releaseBase/$assetName.sha256" -OutFile $checksumPath
+  $checksumText = [IO.File]::ReadAllText($checksumPath, [Text.Encoding]::UTF8)
   $expectedHash = (($checksumText.Trim() -split '\s+')[0]).ToUpperInvariant()
   if ($expectedHash -notmatch '^[A-F0-9]{64}$') { throw 'Release 校验文件格式无效。' }
   $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceArchive).Hash

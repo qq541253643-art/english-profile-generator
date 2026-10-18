@@ -87,9 +87,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.1.0 -> 1.1.1
-npm run version:minor   # 1.1.0 -> 1.2.0
-npm run version:major   # 1.1.0 -> 2.0.0
+npm run version:patch   # 1.1.1 -> 1.1.2
+npm run version:minor   # 1.1.1 -> 1.2.0
+npm run version:major   # 1.1.1 -> 2.0.0
 git push --follow-tags
 ```
 
