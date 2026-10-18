@@ -190,7 +190,9 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
 .avatar-quality-note { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; text-align: center; }
 .profile-content { min-width: 0; padding: 20px 22px; }
 .card-head { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
-.record-number { display: block; margin-bottom: 3px; color: var(--accent); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .05em; }
+.record-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; margin-bottom: 3px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.record-number { color: var(--accent); font-weight: 800; letter-spacing: .05em; }
+.record-meta time { white-space: nowrap; }
 .card-head h3 { display: inline; margin: 0; font-size: 20px; letter-spacing: -.015em; }
 .card-head p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
 .card-actions, .row-actions { display: flex; gap: 5px; }
@@ -227,13 +229,17 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
 
 .mobile-table-hint { display: none; }
 .table-scroll { max-width: 100%; max-height: min(72vh, 800px); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
-table { width: 100%; min-width: 940px; border-collapse: collapse; font-size: 12px; }
+table { width: 100%; min-width: 990px; border-collapse: collapse; font-size: 12px; }
 th { position: sticky; top: 0; z-index: 1; padding: 10px 11px; text-align: left; background: #e4eae5; color: #4d5b57; font-weight: 800; border-bottom: 1px solid #bec9c3; }
 td { padding: 9px 11px; border-bottom: 1px solid #e0e5e1; vertical-align: middle; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover, tbody tr.selected { background: #edf5f2; }
-.table-person { display: flex; align-items: center; gap: 9px; min-width: 145px; }
+.table-profile { min-width: 220px; display: grid; gap: 5px; }
+.table-person { display: flex; align-items: center; gap: 9px; }
 .table-person img { width: 36px; height: 36px; object-fit: cover; border-radius: 9px; background: #dce6e1; }
+.table-record-meta { display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+.table-record-meta strong { color: var(--accent); font-size: 11px; letter-spacing: .04em; }
+.table-record-meta time { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .inline-copy { display: flex; align-items: center; gap: 3px; }
 .inline-copy code { font-family: "Cascadia Code", Consolas, monospace; }
 .inline-copy .icon-button, .row-actions .icon-button { width: 34px; height: 34px; }

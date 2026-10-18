@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$appVersion = '1.2.3'
+$appVersion = '1.2.4'
 $repository = 'qq541253643-art/english-profile-generator'
 $installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
 $appRoot = Join-Path $installRoot 'app'

@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-10-18
+
+### Added
+
+- 每条资料的编号后显示精确到分钟的生成时间，统一按北京时间格式化为“2026年10月18日 14:57”；卡片和表格视图保持一致。
+- 对损坏的旧历史时间安全显示“时间未知”，并增加北京时间跨日测试。
+
 ## [1.2.3] - 2026-10-18
 
 ### Fixed
@@ -165,7 +172,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.4...HEAD
+[1.2.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...v1.2.1

@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.3/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.4/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -70,6 +70,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - 本地英文 Bio 模板和对应中文翻译。
 - 使用 `crypto.getRandomValues` 生成默认 20 位强密码；不使用 `Math.random`。
 - 卡片 / 表格查看，搜索、筛选、批量选择、删除、去重和单条重生成。
+- 卡片编号后显示精确到分钟的北京时间，表格视图同步显示编号与生成时间。
 - Windows 本地版以 IndexedDB 保存非敏感历史。密码不保存，恢复历史时为当前会话重新生成；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用所有访客共同可见、保留 3 天的公共列表。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
@@ -118,9 +119,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.3 -> 1.2.4
-npm run version:minor   # 1.2.3 -> 1.3.0
-npm run version:major   # 1.2.3 -> 2.0.0
+npm run version:patch   # 1.2.4 -> 1.2.5
+npm run version:minor   # 1.2.4 -> 1.3.0
+npm run version:major   # 1.2.4 -> 2.0.0
 git push --follow-tags
 ```
 

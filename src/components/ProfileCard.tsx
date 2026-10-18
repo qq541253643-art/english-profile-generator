@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, Clipboard, Download, Eye, EyeOff, Maximize2, RefreshCw, Trash2 } from 'lucide-react'
 import type { Profile } from '../types/profile'
 import { profileAvatarUrl } from '../services/avatarService'
+import { formatCreatedAt } from '../utils/date'
 
 interface Props {
   profile: Profile
@@ -46,7 +47,7 @@ export function ProfileCard(props: Props) {
 
       <div className="profile-content">
         <div className="card-head">
-          <div><span className="record-number">#{String(index + 1).padStart(3, '0')}</span><h3>{profile.displayName}</h3>
+          <div><div className="record-meta"><span className="record-number">#{String(index + 1).padStart(3, '0')}</span><span aria-hidden="true">·</span><time dateTime={profile.createdAt}>生成于 {formatCreatedAt(profile.createdAt)}</time></div><h3>{profile.displayName}</h3>
             <p>{profile.age} 岁 · {profile.gender === 'male' ? '男' : '女'} · 虚构资料</p></div>
           <div className="card-actions">
             {profile.canDelete !== false && <button type="button" className="icon-button" aria-label="重新生成这条资料" disabled={busy} onClick={() => props.onRegenerate(profile)}><RefreshCw aria-hidden="true" /></button>}
