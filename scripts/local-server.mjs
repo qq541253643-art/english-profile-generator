@@ -9,7 +9,7 @@ import { handleAvatarProxy } from './avatar-proxy.mjs'
 import { handleEnhancedAvatar, serverAvatarEnhancementAvailable } from './avatar-enhancer.mjs'
 import { handleRandomUserProxy } from './random-user-proxy.mjs'
 import { handleSyntheticAvatar, handleSyntheticCatalog } from './synthetic-people-proxy.mjs'
-import { createProfileStore, SERVER_HISTORY_RETENTION_DAYS } from './profile-store.mjs'
+import { createProfileStore, SERVER_HISTORY_RETENTION_DAYS, SERVER_UNIQUENESS_RETENTION_DAYS } from './profile-store.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 setDefaultResultOrder('ipv4first')
@@ -133,6 +133,7 @@ const server = createServer((request, response) => {
       avatarEnhancement: serverAvatarEnhancementAvailable() ? 'server' : 'browser',
       profilePersistence: profileStore ? 'server' : 'browser',
       profileRetentionDays: profileStore ? SERVER_HISTORY_RETENTION_DAYS : 90,
+      profileUniquenessDays: profileStore ? SERVER_UNIQUENESS_RETENTION_DAYS : null,
     }), 'application/json; charset=utf-8')
   }
 

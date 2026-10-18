@@ -1,4 +1,4 @@
-import type { Profile } from '../types/profile'
+import type { GenerationUniqueness, Profile } from '../types/profile'
 import {
   clearProfiles as clearLocalProfiles,
   deleteProfiles as deleteLocalProfiles,
@@ -14,6 +14,15 @@ type HealthResponse = {
 }
 
 type StoredProfile = Omit<Profile, 'avatarPreviewUrl' | 'canDelete'> & { canDelete?: boolean }
+
+const EMPTY_UNIQUENESS: GenerationUniqueness = {
+  windowDays: 0,
+  displayNameKeys: [],
+  usernameKeys: [],
+  bioKeys: [],
+  bioZhKeys: [],
+  avatarIds: [],
+}
 
 let modePromise: Promise<HistoryMode> | null = null
 
@@ -38,8 +47,10 @@ async function serverRequest<T>(method: 'GET' | 'POST' | 'DELETE', body?: unknow
     },
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (!response.ok) throw new Error(`服务器历史同步失败（HTTP ${response.status}）`)
-  return response.json() as Promise<T>
+  const payload = await response.json().catch(() => null) as ({ error?: string } & T) | null
+  if (!response.ok) throw new Error(payload?.error || `服务器历史同步失败（HTTP ${response.status}）`)
+  if (!payload) throw new Error('服务器历史同步返回了无效数据。')
+  return payload
 }
 
 function storable(profile: Profile): StoredProfile {
@@ -51,6 +62,12 @@ export async function loadProfiles(): Promise<Profile[]> {
   if (await getHistoryMode() === 'browser') return loadLocalProfiles()
   const result = await serverRequest<{ profiles: StoredProfile[] }>('GET')
   return result.profiles
+}
+
+export async function loadGenerationUniqueness(): Promise<GenerationUniqueness> {
+  if (await getHistoryMode() === 'browser') return EMPTY_UNIQUENESS
+  const result = await serverRequest<{ uniqueness?: GenerationUniqueness }>('GET')
+  return result.uniqueness || EMPTY_UNIQUENESS
 }
 
 export async function saveProfiles(profiles: Profile[]): Promise<string[]> {

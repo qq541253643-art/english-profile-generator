@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-10-18
+
+### Added
+
+- 服务器新增独立的 30 天全局去重账本，显示姓名、用户名、头像以及中英文 Bio 在所有访客之间不重复；资料提前删除或在 3 天后过期也不会提前释放占用。
+- 浏览器生成前会读取服务器去重范围并排除已用姓名、头像和 Bio，服务器保存时再次原子校验，避免多设备同时生成造成冲突。
+- Bio 词库扩展为 1152 组自然中英文组合，可覆盖每月约 500 条资料的无重复需求。
+
+### Changed
+
+- 公开资料和密码仍只保存 3 天；30 天账本仅保存去重键与使用时间，不保存密码，并在到期后自动清理。
+
 ## [1.2.5] - 2026-10-18
 
 ### Fixed
@@ -180,7 +192,9 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.4...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...HEAD
+[1.2.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.5...v1.2.6
+[1.2.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...v1.2.2

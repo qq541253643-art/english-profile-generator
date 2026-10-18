@@ -1,16 +1,21 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export const SERVER_HISTORY_RETENTION_DAYS = 3
+export const SERVER_UNIQUENESS_RETENTION_DAYS = 30
 const RETENTION_MS = SERVER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
+const UNIQUENESS_RETENTION_MS = SERVER_UNIQUENESS_RETENTION_DAYS * 24 * 60 * 60 * 1000
 const COOKIE_NAME = 'epg_visitor'
 const VISITOR_ID = /^[a-f0-9]{64}$/
 const PROFILE_ID = /^[a-f0-9-]{20,64}$/i
 const MAX_REQUEST_BYTES = 1024 * 1024
 const MAX_SHARED_PROFILES = 5_000
 const MAX_SHARED_BYTES = 50 * 1024 * 1024
+const MAX_USAGE_RECORDS = 20_000
+const MAX_USAGE_BYTES = 20 * 1024 * 1024
 const STORE_FILENAME = 'shared-profiles.json'
+const USAGE_STORE_FILENAME = 'profile-usage.json'
 const PASSWORD_LENGTH = 20
 const PASSWORD_LOWER = 'abcdefghijkmnopqrstuvwxyz'
 const PASSWORD_UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -130,6 +135,99 @@ function retain(profiles, now = Date.now()) {
   return { kept, removedIds }
 }
 
+function uniquenessKey(value) {
+  return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function syntheticAvatarId(profile) {
+  if (profile.avatarSource !== 'sigils-synthetic') return null
+  try {
+    return new URL(profile.avatarUrl, 'http://local.invalid').searchParams.get('id') || null
+  } catch {
+    return null
+  }
+}
+
+function avatarKey(profile) {
+  return createHash('sha256').update(`${profile.avatarSource}\0${profile.avatarUrl}`).digest('hex')
+}
+
+function usageFromProfile(profile, usedAt = profile.createdAt) {
+  return {
+    profileId: profile.id,
+    displayNameKey: uniquenessKey(profile.displayName),
+    usernameKey: uniquenessKey(profile.username),
+    bioKey: uniquenessKey(profile.bio),
+    bioZhKey: uniquenessKey(profile.bioZh),
+    avatarKey: avatarKey(profile),
+    avatarId: syntheticAvatarId(profile),
+    usedAt: new Date(usedAt).toISOString(),
+  }
+}
+
+function isUsage(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && typeof value.profileId === 'string' && PROFILE_ID.test(value.profileId)
+    && typeof value.displayNameKey === 'string' && value.displayNameKey.length > 0
+    && typeof value.usernameKey === 'string' && value.usernameKey.length > 0
+    && typeof value.bioKey === 'string' && value.bioKey.length > 0
+    && typeof value.bioZhKey === 'string' && value.bioZhKey.length > 0
+    && typeof value.avatarKey === 'string' && /^[a-f0-9]{64}$/.test(value.avatarKey)
+    && (value.avatarId === null || typeof value.avatarId === 'string')
+    && Number.isFinite(Date.parse(value.usedAt))
+}
+
+function retainUsage(entries, now = Date.now()) {
+  const cutoff = now - UNIQUENESS_RETENTION_MS
+  const sorted = entries.filter(isUsage).sort((a, b) => Date.parse(b.usedAt) - Date.parse(a.usedAt))
+  const kept = []
+  const seenProfiles = new Set()
+  let bytes = 2
+  for (const entry of sorted) {
+    const entryBytes = Buffer.byteLength(JSON.stringify(entry)) + 1
+    if (Date.parse(entry.usedAt) < cutoff || seenProfiles.has(entry.profileId)
+      || kept.length >= MAX_USAGE_RECORDS || bytes + entryBytes > MAX_USAGE_BYTES) continue
+    kept.push(entry)
+    seenProfiles.add(entry.profileId)
+    bytes += entryBytes
+  }
+  return kept
+}
+
+function uniquenessPayload(entries) {
+  return {
+    windowDays: SERVER_UNIQUENESS_RETENTION_DAYS,
+    displayNameKeys: [...new Set(entries.map((entry) => entry.displayNameKey))],
+    usernameKeys: [...new Set(entries.map((entry) => entry.usernameKey))],
+    bioKeys: [...new Set(entries.map((entry) => entry.bioKey))],
+    bioZhKeys: [...new Set(entries.map((entry) => entry.bioZhKey))],
+    avatarIds: [...new Set(entries.map((entry) => entry.avatarId).filter(Boolean))],
+  }
+}
+
+function sameIdentity(profile, usage) {
+  const incoming = usageFromProfile(profile, usage.usedAt)
+  return incoming.displayNameKey === usage.displayNameKey
+    && incoming.usernameKey === usage.usernameKey
+    && incoming.bioKey === usage.bioKey
+    && incoming.bioZhKey === usage.bioZhKey
+    && incoming.avatarKey === usage.avatarKey
+}
+
+function usageConflicts(profile, entries, ignoredProfileId = null) {
+  const incoming = usageFromProfile(profile)
+  const conflicts = new Set()
+  for (const entry of entries) {
+    if (entry.profileId === ignoredProfileId) continue
+    if (entry.displayNameKey === incoming.displayNameKey) conflicts.add('displayName')
+    if (entry.usernameKey === incoming.usernameKey) conflicts.add('username')
+    if (entry.bioKey === incoming.bioKey) conflicts.add('bio')
+    if (entry.bioZhKey === incoming.bioZhKey) conflicts.add('bioZh')
+    if (entry.avatarKey === incoming.avatarKey) conflicts.add('avatar')
+  }
+  return [...conflicts]
+}
+
 function readStore(path) {
   if (!existsSync(path)) return []
   try {
@@ -179,13 +277,24 @@ export function createProfileStore(directory) {
   if (!directory) return null
   mkdirSync(directory, { recursive: true, mode: 0o700 })
   const path = join(directory, STORE_FILENAME)
-  const cleanup = () => {
+  const usagePath = join(directory, USAGE_STORE_FILENAME)
+  const cleanup = (now = Date.now()) => {
     const migrated = readStore(path).map((profile) => validPassword(profile.password)
       ? profile
       : { ...profile, password: generateStrongPassword() })
-    const retention = retain(migrated)
+    const knownUsage = readStore(usagePath)
+    const knownProfileIds = new Set(knownUsage.filter(isUsage).map((entry) => entry.profileId))
+    const seededUsage = [...knownUsage]
+    for (const profile of migrated) {
+      if (!knownProfileIds.has(profile.id) && Number.isFinite(Date.parse(profile.createdAt))) {
+        seededUsage.push(usageFromProfile(profile))
+      }
+    }
+    const retention = retain(migrated, now)
+    const usage = retainUsage(seededUsage, now)
     writeStore(path, retention.kept)
-    return retention
+    writeStore(usagePath, usage)
+    return { ...retention, usage }
   }
   cleanup()
   const timer = setInterval(cleanup, 60 * 60 * 1000)
@@ -200,6 +309,7 @@ export function createProfileStore(directory) {
         return json(response, 200, {
           profiles: publicProfiles(retention.kept, currentVisitorId),
           retentionDays: SERVER_HISTORY_RETENTION_DAYS,
+          uniqueness: uniquenessPayload(retention.usage),
           visibility: 'public-shared',
         }, currentVisitorId)
       }
@@ -209,16 +319,42 @@ export function createProfileStore(directory) {
         const now = Date.now()
         const incoming = body.profiles.map((profile) => sanitizeProfile(profile, currentVisitorId, now))
         if (incoming.some((profile) => !profile)) return json(response, 400, { error: 'Invalid profile' }, currentVisitorId)
-        const merged = new Map(readStore(path).map((profile) => [profile.id, profile]))
+        const current = cleanup(now)
+        const merged = new Map(current.kept.map((profile) => [profile.id, profile]))
         if (incoming.some((profile) => merged.has(profile.id) && merged.get(profile.id).ownerId !== currentVisitorId)) {
           return json(response, 409, { error: 'Profile already exists' }, currentVisitorId)
         }
-        for (const profile of incoming) merged.set(profile.id, profile)
+        const nextUsage = [...current.usage]
+        for (const profile of incoming) {
+          const existing = merged.get(profile.id)
+          const existingUsage = nextUsage.find((entry) => entry.profileId === profile.id)
+          const idempotent = Boolean(existing && existingUsage && existing.ownerId === currentVisitorId && sameIdentity(profile, existingUsage))
+          if (existing && !idempotent) {
+            return json(response, 409, {
+              error: '已保存资料的姓名、用户名、Bio 或头像不能被覆盖。',
+              code: 'PROFILE_IDENTITY_CHANGED',
+            }, currentVisitorId)
+          }
+          const conflicts = usageConflicts(profile, nextUsage, idempotent ? profile.id : null)
+          if (conflicts.length) {
+            return json(response, 409, {
+              error: '姓名、头像或 Bio 在最近 30 天内已经使用，请重新生成。',
+              code: 'UNIQUENESS_CONFLICT',
+              conflicts,
+              uniquenessDays: SERVER_UNIQUENESS_RETENTION_DAYS,
+            }, currentVisitorId)
+          }
+          if (!idempotent) nextUsage.push(usageFromProfile(profile, now))
+          merged.set(profile.id, profile)
+        }
         const retention = retain([...merged.values()], now)
+        const usage = retainUsage(nextUsage, now)
         writeStore(path, retention.kept)
+        writeStore(usagePath, usage)
         return json(response, 200, {
           removedIds: retention.removedIds,
           retentionDays: SERVER_HISTORY_RETENTION_DAYS,
+          uniquenessDays: SERVER_UNIQUENESS_RETENTION_DAYS,
           visibility: 'public-shared',
         }, currentVisitorId)
       }

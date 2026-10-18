@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.5/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.6/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -35,6 +35,7 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 
 - Windows 本地版 IndexedDB 历史自动保留最近 90 天、最多 500 条，并限制在约 50 MB。
 - 服务器版公共列表保存所有访客生成的非敏感资料 3 天，最多 5000 条且限制在约 50 MB；任何访客可查看，只有创建者浏览器能提前删除自己的资料。
+- 服务器另存轻量的 30 天去重账本：显示姓名、用户名、头像以及中英文 Bio 在所有访客之间全局不重复。提前删除资料不会释放占用，到期后自动清理；账本不保存密码。
 - 密码首次生成后随资料固定保存：服务器内部共享列表保留 3 天，Windows 本地 IndexedDB 最长保留 90 天。服务器地址目前没有登录鉴权，知道地址的人可查看列表与密码，因此这些密码只用于资料草稿，不得复用真实账号密码。
 - Windows 启动时会收缩超过 1 MB 的运行日志，清理一天前的中断安装临时目录与过期安装备份。
 - 服务器只保留当前版本和一个回退版本，并清理源码归档、npm 缓存与过期暂存目录；公共资料按 3 天规则自动清理。
@@ -60,7 +61,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 sudo bash deploy/server/install.sh profile.example.com
 ```
 
-服务器将资料和首次生成的密码同步到内部共享列表并保留 3 天；打开服务器地址的成员看到同一条资料时，密码保持一致。浏览器生成的头像 Blob 不上传。启动服务会先把头像源的 1024px AVIF 转成兼容 JPEG，浏览器再在当前会话中生成 512 × 512 PNG，因此也支持停留在 iOS 15 的 iPhone 7。转换结果仅在内存保留最近 24 张，不写入长期磁盘缓存。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
+服务器将资料和首次生成的密码同步到内部共享列表并保留 3 天；打开服务器地址的成员看到同一条资料时，密码保持一致。姓名、用户名、头像和中英文 Bio 另行执行 30 天全局去重。浏览器生成的头像 Blob 不上传。启动服务会先把头像源的 1024px AVIF 转成兼容 JPEG，浏览器再在当前会话中生成 512 × 512 PNG，因此也支持停留在 iOS 15 的 iPhone 7。转换结果仅在内存保留最近 24 张，不写入长期磁盘缓存。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
 ## 已实现功能
 
@@ -71,7 +72,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - 使用 `crypto.getRandomValues` 生成默认 20 位强密码；不使用 `Math.random`。
 - 卡片 / 表格查看，搜索、筛选、批量选择、删除、去重和单条重生成。
 - 卡片编号后显示精确到分钟的北京时间，表格视图同步显示编号与生成时间。
-- Windows 本地版以 IndexedDB 保存历史和生成时的密码，恢复后密码不变；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用内部成员共同可见、保留 3 天的共享列表，跨设备显示同一密码。
+- Windows 本地版以 IndexedDB 保存历史和生成时的密码，恢复后密码不变；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用内部成员共同可见、保留 3 天的共享列表，跨设备显示同一密码；独立去重账本保证姓名、用户名、头像和 Bio 30 天内不重复。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
 - sigils-people 高清合成人像源图为 1024px AVIF，启动服务先转为旧版 Safari 兼容的高质量 JPEG，浏览器统一输出 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。
@@ -119,7 +120,7 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.4 -> 1.2.5
+npm run version:patch   # 1.2.5 -> 1.2.6
 npm run version:minor   # 1.2.4 -> 1.3.0
 npm run version:major   # 1.2.4 -> 2.0.0
 git push --follow-tags

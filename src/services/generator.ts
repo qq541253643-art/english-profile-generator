@@ -1,5 +1,5 @@
-import type { BasePerson, GenerationResult, GeneratorSettings, Profile, ProgressCallback } from '../types/profile'
-import { generateBio } from '../utils/bio'
+import type { BasePerson, GenerationResult, GeneratorSettings, GenerationUniqueness, Profile, ProgressCallback } from '../types/profile'
+import { generateUniqueBio } from '../utils/bio'
 import { makeInitialAvatar } from '../utils/avatar'
 import { generateStrongPassword } from '../utils/password'
 import { generateUniqueUsername } from '../utils/username'
@@ -10,8 +10,18 @@ import { assignSyntheticAvatars } from './syntheticAvatarService'
 
 const MAX_API_ROUNDS = 4
 
-function enrichPerson(person: BasePerson, settings: GeneratorSettings, usernames: Set<string>): Profile {
-  const generatedBio = generateBio(person.firstName)
+function uniquenessKey(value: string): string {
+  return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function enrichPerson(
+  person: BasePerson,
+  settings: GeneratorSettings,
+  usernames: Set<string>,
+  bios: Set<string>,
+  chineseBios: Set<string>,
+): Profile {
+  const generatedBio = generateUniqueBio(person.firstName, bios, chineseBios)
   const username = generateUniqueUsername({
     firstName: person.firstName,
     lastName: person.lastName,
@@ -36,9 +46,11 @@ export async function generateProfiles(
   existingUsernames = new Set<string>(),
   onProgress?: ProgressCallback,
   signal?: AbortSignal,
+  uniqueness?: GenerationUniqueness,
 ): Promise<GenerationResult> {
   const accepted: BasePerson[] = []
   const seenAvatars = new Set<string>()
+  const seenNames = new Set(uniqueness?.displayNameKeys || [])
   const warnings: string[] = []
   let apiUnavailable = false
 
@@ -52,7 +64,10 @@ export async function generateProfiles(
         if (accepted.length >= settings.count) break
         if (!isAgeInRange(person.age, settings.minAge, settings.maxAge)) continue
         if (seenAvatars.has(person.avatarUrl)) continue
+        const nameKey = uniquenessKey(`${person.firstName} ${person.lastName}`)
+        if (seenNames.has(nameKey)) continue
         seenAvatars.add(person.avatarUrl)
+        seenNames.add(nameKey)
         accepted.push(person)
       }
     } catch (error) {
@@ -73,18 +88,20 @@ export async function generateProfiles(
     while (accepted.length < settings.count) {
       const mockPerson = createMockPerson(settings.gender, settings.minAge, settings.maxAge)
       mockAttempts += 1
-      if (seenAvatars.has(mockPerson.avatarUrl)) {
-        if (mockAttempts > 5_000) throw new Error('本地模拟头像去重超过安全上限，请缩小批量后重试。')
+      const nameKey = uniquenessKey(`${mockPerson.firstName} ${mockPerson.lastName}`)
+      if (seenAvatars.has(mockPerson.avatarUrl) || seenNames.has(nameKey)) {
+        if (mockAttempts > 5_000) throw new Error('当前条件下可用的未重复姓名不足，请稍后重试。')
         continue
       }
       seenAvatars.add(mockPerson.avatarUrl)
+      seenNames.add(nameKey)
       accepted.push(mockPerson)
     }
   }
 
   onProgress?.(0, settings.count, '正在匹配原生 1024px 合成人像…')
   try {
-    const assigned = await assignSyntheticAvatars(accepted)
+    const assigned = await assignSyntheticAvatars(accepted, new Set(uniqueness?.avatarIds || []))
     if (assigned < accepted.length) warnings.push(`${accepted.length - assigned} 条资料未匹配到合适的合成人像，已使用本地占位图。`)
   } catch {
     for (const person of accepted) {
@@ -94,9 +111,11 @@ export async function generateProfiles(
     warnings.push('高清合成人像服务暂时不可用，已明确切换为本地占位图。')
   }
 
-  const usernames = new Set(existingUsernames)
+  const usernames = new Set([...existingUsernames, ...(uniqueness?.usernameKeys || [])])
+  const bios = new Set(uniqueness?.bioKeys || [])
+  const chineseBios = new Set(uniqueness?.bioZhKeys || [])
   const profiles = accepted.map((person, index) => {
-    const profile = enrichPerson(person, settings, usernames)
+    const profile = enrichPerson(person, settings, usernames, bios, chineseBios)
     onProgress?.(index + 1, settings.count, '正在生成用户名、Bio 与密码…')
     return profile
   })

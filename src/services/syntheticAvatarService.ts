@@ -56,9 +56,9 @@ function shuffle<T>(items: T[]): T[] {
   return output
 }
 
-export async function assignSyntheticAvatars(people: BasePerson[]): Promise<number> {
+export async function assignSyntheticAvatars(people: BasePerson[], excludedIds = new Set<string>()): Promise<number> {
   const catalog = await loadCatalog()
-  const available = shuffle(catalog.filter((item) => item[5] >= 18 && item[5] <= 45))
+  const available = shuffle(catalog.filter((item) => item[5] >= 18 && item[5] <= 45 && !excludedIds.has(item[0])))
   const used = new Set<string>()
   let assigned = 0
 

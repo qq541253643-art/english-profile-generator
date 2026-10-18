@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generateBio } from '../utils/bio'
+import { generateBio, generateUniqueBio } from '../utils/bio'
 import { generateStrongPassword, hasStrongPasswordComplexity } from '../utils/password'
 import { generateUuid } from '../utils/uuid'
 
@@ -8,6 +8,14 @@ describe('Bio 生成', () => {
     const bios = Array.from({ length: 40 }, () => generateBio('Mia'))
     expect(bios.every((item) => item.bio.length > 20 && item.bioZh.length > 10)).toBe(true)
     expect(new Set(bios.map((item) => item.bio)).size).toBeGreaterThan(3)
+  })
+
+  it('至少可生成 500 组互不重复的中英文 Bio', () => {
+    const english = new Set<string>()
+    const chinese = new Set<string>()
+    const bios = Array.from({ length: 500 }, () => generateUniqueBio('Mia', english, chinese))
+    expect(new Set(bios.map((item) => item.bio)).size).toBe(500)
+    expect(new Set(bios.map((item) => item.bioZh)).size).toBe(500)
   })
 })
 

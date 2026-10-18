@@ -11,8 +11,8 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { downloadAvatar, exportAvatarZip, prepareProfileAvatars, releaseProfileAvatar } from './services/avatarService'
 import { exportCsv, exportExcel } from './services/exportService'
 import { generateProfiles } from './services/generator'
-import { clearProfiles, deleteProfiles, getHistoryMode, loadProfiles, saveProfiles, type HistoryMode } from './services/historyService'
-import type { GeneratorSettings, Profile } from './types/profile'
+import { clearProfiles, deleteProfiles, getHistoryMode, loadGenerationUniqueness, loadProfiles, saveProfiles, type HistoryMode } from './services/historyService'
+import type { GenerationUniqueness, GeneratorSettings, Profile } from './types/profile'
 import { DEFAULT_PLATFORM_RULES } from './utils/username'
 import packageInfo from '../package.json'
 
@@ -29,6 +29,27 @@ const defaultSettings: GeneratorSettings = {
 const preferredView = (count: number): 'cards' | 'table' => (
   count > 10 && !window.matchMedia('(max-width: 680px)').matches ? 'table' : 'cards'
 )
+
+const uniquenessKey = (value: string) => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase()
+
+function uniquenessFromProfiles(profiles: Profile[]): GenerationUniqueness {
+  return {
+    windowDays: 90,
+    displayNameKeys: profiles.map((profile) => uniquenessKey(profile.displayName)),
+    usernameKeys: profiles.map((profile) => uniquenessKey(profile.username)),
+    bioKeys: profiles.map((profile) => uniquenessKey(profile.bio)),
+    bioZhKeys: profiles.map((profile) => uniquenessKey(profile.bioZh)),
+    avatarIds: profiles.flatMap((profile) => {
+      if (profile.avatarSource !== 'sigils-synthetic') return []
+      try {
+        const id = new URL(profile.avatarUrl, window.location.origin).searchParams.get('id')
+        return id ? [id] : []
+      } catch {
+        return []
+      }
+    }),
+  }
+}
 
 type Toast = { id: number; tone: 'success' | 'error' | 'info'; message: string }
 
@@ -172,8 +193,12 @@ export default function App() {
     setProgress({ completed: 0, total: generationSettings.count, message: '正在准备请求…' })
     try {
       const activeHistoryMode = historyMode === 'loading' ? await getHistoryMode() : historyMode
+      const uniqueness = activeHistoryMode === 'server'
+        ? await loadGenerationUniqueness()
+        : uniquenessFromProfiles(profiles)
       const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
-        (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }))
+        (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }),
+        undefined, uniqueness)
       if (operation !== operationRef.current) return
       setProgress({ completed: 0, total: result.profiles.length, message: '正在生成 512 × 512 高清头像…' })
       const prepared = await prepareProfileAvatars(result.profiles,
@@ -250,14 +275,19 @@ export default function App() {
     setIsGenerating(true)
     try {
       const singleSettings = { ...settings, count: 1 as const, gender: profile.gender }
-      const result = await generateProfiles(singleSettings, new Set(profiles.filter((item) => item.id !== profile.id).map((item) => item.username)))
+      const otherProfiles = profiles.filter((item) => item.id !== profile.id)
+      const uniqueness = historyMode === 'server'
+        ? await loadGenerationUniqueness()
+        : uniquenessFromProfiles(otherProfiles)
+      const result = await generateProfiles(singleSettings, new Set(otherProfiles.map((item) => item.username)), undefined, undefined, uniqueness)
       setProgress({ completed: 0, total: 1, message: '正在准备 512 × 512 高清头像…' })
       const prepared = await prepareProfileAvatars(result.profiles,
         (completed, total) => setProgress({ completed, total, message: '正在准备 512 × 512 高清头像…' }))
       if (prepared.failed > 0) throw new Error('头像高清处理失败，请稍后重试。')
       const replacement = historyMode === 'server' ? { ...prepared.profiles[0], canDelete: true } : prepared.profiles[0]
-      await deleteProfiles([profile.id])
       const removedIds = await saveProfiles([replacement])
+      if (removedIds.includes(replacement.id)) throw new Error('新资料未能进入历史，请稍后重试。')
+      await deleteProfiles([profile.id])
       setProfiles((current) => current.map((item) => {
         if (item.id !== profile.id) return item
         releaseProfileAvatar(item)
@@ -427,7 +457,7 @@ export default function App() {
           </section>}
 
           {profiles.length > 0 && <div className="history-footer"><span><History aria-hidden="true" />{historyMode === 'server'
-            ? '服务器内部共享列表；打开此地址者可见，资料和密码保留 3 天'
+            ? '服务器公共资料保留 3 天；姓名、用户名、头像和 Bio 在 30 天内全局不重复'
             : '历史和密码仅存本机；自动保留最近 90 天、最多 500 条且不超过约 50 MB'}</span><button type="button" className="text-button danger-text" onClick={clearAll}><Trash2 aria-hidden="true" />{historyMode === 'server' ? '删除我生成的' : '清空全部'}</button></div>}
         </section>
       </main>

@@ -61,4 +61,13 @@ export interface GenerationResult {
   warnings: string[]
 }
 
+export interface GenerationUniqueness {
+  windowDays: number
+  displayNameKeys: string[]
+  usernameKeys: string[]
+  bioKeys: string[]
+  bioZhKeys: string[]
+  avatarIds: string[]
+}
+
 export type ProgressCallback = (completed: number, total: number, message: string) => void

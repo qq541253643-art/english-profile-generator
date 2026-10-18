@@ -1,7 +1,7 @@
 {
   "name": "english-profile-generator",
   "private": true,
-  "version": "1.2.5",
+  "version": "1.2.6",
   "type": "module",
   "description": "Windows 本地运行的虚构英文社交账号资料生成器",
   "scripts": {

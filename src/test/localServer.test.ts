@@ -117,7 +117,16 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     const ownerLoad = await fetch(`${state.url}/__profiles`, { headers })
     const ownerCookie = ownerLoad.headers.get('set-cookie')?.split(';')[0]
     expect(ownerCookie).toMatch(/^epg_visitor=[a-f0-9]{64}$/)
-    expect(await ownerLoad.json()).toMatchObject({ profiles: [], retentionDays: 3, visibility: 'public-shared' })
+    expect(await ownerLoad.json()).toMatchObject({
+      profiles: [],
+      retentionDays: 3,
+      uniqueness: {
+        windowDays: 30,
+        displayNameKeys: ['old profile'],
+        avatarIds: ['us-02'],
+      },
+      visibility: 'public-shared',
+    })
 
     const savedProfile = {
       id: '11111111-1111-4111-8111-111111111111',
@@ -132,6 +141,50 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
       body: JSON.stringify({ profiles: [savedProfile] }),
     })
     expect(save.status).toBe(200)
+
+    const duplicateCases = [
+      {
+        expected: 'displayName',
+        profile: {
+          ...savedProfile,
+          id: '66666666-6666-4666-8666-666666666666',
+          username: 'unique.name',
+          bio: 'A unique English Bio.', bioZh: '一条不重复的中文简介。',
+          avatarUrl: '/__synthetic-avatar?id=us-03',
+        },
+      },
+      {
+        expected: 'avatar',
+        profile: {
+          ...savedProfile,
+          id: '77777777-7777-4777-8777-777777777777',
+          firstName: 'Avery', lastName: 'Wilson', displayName: 'Avery Wilson', username: 'avery.wilson',
+          bio: 'Another unique English Bio.', bioZh: '另一条不重复的中文简介。',
+        },
+      },
+      {
+        expected: 'bio',
+        profile: {
+          ...savedProfile,
+          id: '88888888-8888-4888-8888-888888888888',
+          firstName: 'Chloe', lastName: 'Moore', displayName: 'Chloe Moore', username: 'chloe.moore',
+          bioZh: '中文简介保持唯一。', avatarUrl: '/__synthetic-avatar?id=us-04',
+        },
+      },
+    ]
+    for (const duplicateCase of duplicateCases) {
+      const duplicate = await fetch(`${state.url}/__profiles`, {
+        method: 'POST',
+        headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profiles: [duplicateCase.profile] }),
+      })
+      expect(duplicate.status).toBe(409)
+      expect(await duplicate.json()).toMatchObject({
+        code: 'UNIQUENESS_CONFLICT',
+        conflicts: expect.arrayContaining([duplicateCase.expected]),
+        uniquenessDays: 30,
+      })
+    }
 
     const weakPassword = await fetch(`${state.url}/__profiles`, {
       method: 'POST',
@@ -185,7 +238,25 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
       body: JSON.stringify({ ids: [savedProfile.id] }),
     })
     expect(await ownerDelete.json()).toMatchObject({ deleted: 1 })
-    expect((await fetch(`${state.url}/__profiles`, { headers })).status).toBe(200)
+    const afterDelete = await fetch(`${state.url}/__profiles`, { headers })
+    expect(afterDelete.status).toBe(200)
+    expect(await afterDelete.json()).toMatchObject({
+      profiles: [],
+      uniqueness: { windowDays: 30, displayNameKeys: expect.arrayContaining(['maya davis']) },
+    })
+
+    const reuseAfterDelete = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: [{
+        ...savedProfile,
+        id: '99999999-9999-4999-8999-999999999999',
+        username: 'maya.new', bio: 'Fresh English Bio.', bioZh: '新的中文简介。',
+        avatarUrl: '/__synthetic-avatar?id=us-05',
+      }] }),
+    })
+    expect(reuseAfterDelete.status).toBe(409)
+    expect(await reuseAfterDelete.json()).toMatchObject({ conflicts: expect.arrayContaining(['displayName']) })
 
     const { password: _legacyPassword, ...legacyProfile } = {
       ...savedProfile,
