@@ -1,5 +1,6 @@
 import { Clipboard, RefreshCw, Trash2 } from 'lucide-react'
 import type { Profile } from '../types/profile'
+import { profileAvatarUrl } from '../services/avatarService'
 
 interface Props {
   profiles: Profile[]
@@ -24,7 +25,7 @@ export function ProfileTable({ profiles, selected, busy, ...props }: Props) {
         <tbody>{profiles.map((profile) => (
           <tr key={profile.id} className={selected.has(profile.id) ? 'selected' : ''}>
             <td><input type="checkbox" aria-label={`选择 ${profile.displayName}`} checked={selected.has(profile.id)} onChange={() => props.onToggle(profile.id)} /></td>
-            <td><div className="table-person"><img src={profile.avatarUrl} alt="" loading="lazy" /><strong>{profile.displayName}</strong></div></td>
+            <td><div className="table-person"><img src={profileAvatarUrl(profile)} alt="" loading="lazy" /><strong>{profile.displayName}</strong></div></td>
             <td><div className="inline-copy"><code>@{profile.username}</code><button type="button" className="icon-button" aria-label="复制用户名" onClick={() => props.onCopy(profile.username, '用户名')}><Clipboard aria-hidden="true" /></button></div></td>
             <td>{profile.age}</td><td>{profile.gender === 'male' ? '男' : '女'}</td><td className="bio-cell" title={profile.bio}>{profile.bio}</td>
             <td><span className={`source-dot ${profile.dataSource}`}>{profile.dataSource === 'api' ? 'API' : '本地模拟'}</span></td>

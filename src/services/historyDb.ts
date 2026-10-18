@@ -8,7 +8,7 @@ export const HISTORY_RETENTION_DAYS = 90
 export const HISTORY_MAX_PROFILES = 500
 export const HISTORY_MAX_BYTES = 50 * 1024 * 1024
 
-type StoredProfile = Omit<Profile, 'password'>
+type StoredProfile = Omit<Profile, 'password' | 'avatarPreviewUrl'>
 
 export interface HistoryRetentionResult<T> {
   kept: T[]
@@ -55,7 +55,7 @@ async function database() {
 export async function saveProfiles(profiles: Profile[]): Promise<string[]> {
   const db = await database()
   const tx = db.transaction(STORE_NAME, 'readwrite')
-  await Promise.all(profiles.map(({ password: _password, ...profile }) => tx.store.put(profile satisfies StoredProfile)))
+  await Promise.all(profiles.map(({ password: _password, avatarPreviewUrl: _avatarPreviewUrl, ...profile }) => tx.store.put(profile satisfies StoredProfile)))
   const retention = applyHistoryRetention(await tx.store.getAll() as StoredProfile[])
   await Promise.all(retention.removedIds.map((id) => tx.store.delete(id)))
   await tx.done

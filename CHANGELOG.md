@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [1.1.10] - 2026-10-18
+
+### Added
+
+- 新增 sigils-people 原生 1024px AI 合成人像源，按性别和年龄匹配，支持 300 条不重复头像。
+- 合成人像使用 CC BY 4.0，批量 ZIP 自动附带 `CREDITS.txt`，图片画面不添加可见水印。
+- Random User 请求改为先走同源服务器代理，降低中国大陆网络直连超时概率。
+
+### Changed
+
+- 头像处理前移到资料生成过程；只有 512 × 512 PNG 准备完成后才显示资料卡，点开大图时不再等待。
+- 移除服务器 TensorFlow 运行依赖和头像放大缓存，避免更新时下载约 400 MB 依赖影响网站稳定性。
+- 旧版 Random User 历史头像仍可查看，但新生成资料不再使用 128px 原图。
+
 ## [1.1.9] - 2026-10-18
 
 ### Fixed
@@ -111,7 +125,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...HEAD
+[1.1.10]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...v1.1.10
 [1.1.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...v1.1.7

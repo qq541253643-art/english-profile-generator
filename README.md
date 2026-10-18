@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.9/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.1.10/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -27,7 +27,7 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 - Windows 本地版检测到局域网地址时也会显示二维码，但要求手机与电脑处于同一局域网。
 - 手机端固定为每次生成一条资料，隐藏批量数量、表格和批量导出；桌面端继续支持 1 / 10 / 100 / 300。
 - 手机点击头像可打开大图，长按大图后按系统菜单保存到照片或下载目录。
-- 新生成资料使用 Random User 真人风格照片，并在打开大图、下载和 ZIP 时增强为 512 × 512 PNG；不需要逐张上传。
+- 新生成资料使用 sigils-people 原生 1024px AI 合成人像，生成过程会先准备好 512 × 512 PNG 再显示；图片没有可见水印。
 - 手机与电脑浏览器的历史资料分别保存在各自设备的 IndexedDB，不会上传或自动同步。
 - 服务器版与 Windows 本地版使用同一 GitHub Release 版本，分别自动检查更新。
 
@@ -58,7 +58,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 sudo bash deploy/server/install.sh profile.example.com
 ```
 
-服务器不接收或同步浏览器 IndexedDB 中的资料与密码。公网版会在服务器端按需增强 Random User 头像并按照片编号缓存；白名单最多只有 200 个缓存文件，不会无限增长。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
+服务器不接收或同步浏览器 IndexedDB 中的资料与密码。高清合成人像由浏览器按条件选取并在当前会话中转换，服务器不累积用户头像。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
 ## 已实现功能
 
@@ -71,7 +71,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - IndexedDB 保存非敏感历史。密码不保存，恢复历史时为当前会话重新生成；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
-- Random User 真人风格照片统一导出为 512 × 512 PNG：公网版由服务器 ESRGAN x4 按需增强后直接下载，Windows 本地版由电脑浏览器使用同款 x4 模型处理。不依赖头像上传或付费图片 API，且明确标注不是原生高清。
+- sigils-people 高清合成人像源图为 1024px AVIF，下载统一转换为 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
@@ -85,8 +85,8 @@ sudo bash deploy/server/install.sh profile.example.com
 https://randomuser.me/api/1.4/?nat=us&results=1&inc=gender,name,dob,picture,nat
 ```
 
-- `nat=us` 只影响 API 资料的国籍选择，官方文档明确说明照片不受国籍参数影响。本项目不宣称照片是美国真人。
-- 远程头像只是演示占位，使用许可由素材提供方决定。正式使用前请替换为自己已获授权或具有可商用许可的素材。
+- `nat=us` 只用于生成英文姓名与虚构年龄，不表示合成人像的国籍。
+- 头像来自 [sigils-people](https://ambravo.github.io/sigils-people/)，为不对应真实人物的合成人像，按 CC BY 4.0 使用；界面和 ZIP 中保留来源说明，图片画面不添加水印。
 - 不抓取社交平台用户照片，不生成政府 ID、电话或冒名验证资料。
 - 不提供批量注册、风控规避或自动化平台操作。
 
@@ -96,7 +96,7 @@ https://randomuser.me/api/1.4/?nat=us&results=1&inc=gender,name,dob,picture,nat
 - Tailwind CSS 4（设计令牌与布局样式保留在本地 CSS）
 - IndexedDB (`idb`)
 - `write-excel-file` 与 JSZip，均在导出时懒加载
-- TensorFlow.js、UpscalerJS 与本地 ESRGAN Slim x4 模型，仅在打开或导出真人照片时懒加载
+- 原生 1024px AVIF 合成人像，浏览器本地转换为 512px PNG
 - Lucide React 图标
 - Vitest + Testing Library
 
@@ -116,9 +116,9 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.1.9 -> 1.1.10
-npm run version:minor   # 1.1.9 -> 1.2.0
-npm run version:major   # 1.1.9 -> 2.0.0
+npm run version:patch   # 1.1.10 -> 1.1.11
+npm run version:minor   # 1.1.10 -> 1.2.0
+npm run version:major   # 1.1.10 -> 2.0.0
 git push --follow-tags
 ```
 
@@ -126,4 +126,4 @@ git push --follow-tags
 
 ## 许可证
 
-项目代码使用 [MIT License](./LICENSE)。远程 API 数据与照片不因本仓库许可证而获得任何额外授权。
+项目代码使用 [MIT License](./LICENSE)。sigils-people 人像使用 CC BY 4.0，署名为“Portraits by Ariel Bravo Ayala — sigils-people — CC BY 4.0”。远程 API 数据不因本仓库许可证而获得任何额外授权。

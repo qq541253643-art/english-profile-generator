@@ -8,7 +8,7 @@ import { ProfileCard } from './components/ProfileCard'
 import { AvatarPreview } from './components/AvatarPreview'
 import { ProfileTable } from './components/ProfileTable'
 import { SettingsPanel } from './components/SettingsPanel'
-import { downloadAvatar, exportAvatarZip } from './services/avatarService'
+import { downloadAvatar, exportAvatarZip, prepareProfileAvatars, releaseProfileAvatar } from './services/avatarService'
 import { exportCsv, exportExcel } from './services/exportService'
 import { generateProfiles } from './services/generator'
 import { clearProfiles, deleteProfiles, loadProfiles, saveProfiles } from './services/historyDb'
@@ -125,7 +125,7 @@ export default function App() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visibleProfiles = filtered.slice((page - 1) * pageSize, page * pageSize)
   const exportProfiles = selected.size > 0 ? profiles.filter((profile) => selected.has(profile.id)) : filtered
-  const exportNeedsRightsConfirmation = exportProfiles.some((profile) => profile.avatarSource === 'randomuser-placeholder')
+  const exportNeedsRightsConfirmation = exportProfiles.some((profile) => ['sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource))
 
   useEffect(() => setPage(1), [search, filterGender, filterSource, view])
   useEffect(() => { if (page > totalPages) setPage(totalPages) }, [page, totalPages])
@@ -142,8 +142,20 @@ export default function App() {
       const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
         (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }))
       if (operation !== operationRef.current) return
-      const removedIds = await saveProfiles(result.profiles)
-      setProfiles((current) => [...result.profiles, ...current].filter((profile) => !removedIds.includes(profile.id)))
+      setProgress({ completed: 0, total: result.profiles.length, message: '正在生成 512 × 512 高清头像…' })
+      const prepared = await prepareProfileAvatars(result.profiles,
+        (completed, total) => operation === operationRef.current
+          && setProgress({ completed, total, message: '正在生成 512 × 512 高清头像…' }))
+      if (operation !== operationRef.current) return
+      if (prepared.failed > 0) {
+        prepared.profiles.forEach(releaseProfileAvatar)
+        throw new Error(`${prepared.failed} 张头像高清处理失败，本次未保存。请稍后重试。`)
+      }
+      const removedIds = await saveProfiles(prepared.profiles)
+      setProfiles((current) => {
+        current.filter((profile) => removedIds.includes(profile.id)).forEach(releaseProfileAvatar)
+        return [...prepared.profiles, ...current].filter((profile) => !removedIds.includes(profile.id))
+      })
       setLastSummary({ apiCount: result.apiCount, mockCount: result.mockCount, warnings: result.warnings })
       setView(preferredView(result.profiles.length))
       setPage(1)
@@ -186,7 +198,10 @@ export default function App() {
   }
 
   const remove = async (ids: string[]) => {
-    setProfiles((current) => current.filter((profile) => !ids.includes(profile.id)))
+    setProfiles((current) => {
+      current.filter((profile) => ids.includes(profile.id)).forEach(releaseProfileAvatar)
+      return current.filter((profile) => !ids.includes(profile.id))
+    })
     setSelected((current) => new Set([...current].filter((id) => !ids.includes(id))))
     await deleteProfiles(ids).catch(() => addToast('界面已删除，但本地历史同步失败。', 'error'))
     addToast(`已删除 ${ids.length} 条资料。`)
@@ -198,14 +213,21 @@ export default function App() {
     try {
       const singleSettings = { ...settings, count: 1 as const, gender: profile.gender }
       const result = await generateProfiles(singleSettings, new Set(profiles.filter((item) => item.id !== profile.id).map((item) => item.username)))
-      const replacement = result.profiles[0]
+      setProgress({ completed: 0, total: 1, message: '正在准备 512 × 512 高清头像…' })
+      const prepared = await prepareProfileAvatars(result.profiles,
+        (completed, total) => setProgress({ completed, total, message: '正在准备 512 × 512 高清头像…' }))
+      if (prepared.failed > 0) throw new Error('头像高清处理失败，请稍后重试。')
+      const replacement = prepared.profiles[0]
       await deleteProfiles([profile.id])
       const removedIds = await saveProfiles([replacement])
-      setProfiles((current) => current.map((item) => item.id === profile.id ? replacement : item)
-        .filter((item) => !removedIds.includes(item.id)))
+      setProfiles((current) => current.map((item) => {
+        if (item.id !== profile.id) return item
+        releaseProfileAvatar(item)
+        return replacement
+      }).filter((item) => !removedIds.includes(item.id)))
       addToast('已重新生成该条资料。')
     } catch (error) { addToast(error instanceof Error ? error.message : '重新生成失败', 'error') }
-    finally { setIsGenerating(false) }
+    finally { setIsGenerating(false); setProgress({ completed: 0, total: 0, message: '' }) }
   }
 
   const deduplicate = async () => {
@@ -229,7 +251,7 @@ export default function App() {
 
   const clearAll = async () => {
     if (!window.confirm('确定清空当前资料和本地历史吗？此操作无法撤销。')) return
-    setProfiles([]); setSelected(new Set()); await clearProfiles(); addToast('已清空本地历史。')
+    profiles.forEach(releaseProfileAvatar); setProfiles([]); setSelected(new Set()); await clearProfiles(); addToast('已清空本地历史。')
   }
 
   const toggleAll = () => {
@@ -241,7 +263,7 @@ export default function App() {
   }
 
   const handleZip = async () => {
-    if (exportNeedsRightsConfirmation && !avatarRightsConfirmed) return addToast('请先确认旧版 API 头像的授权限制。', 'error')
+    if (exportNeedsRightsConfirmation && !avatarRightsConfirmed) return addToast('请先确认合成人像的来源与使用限制。', 'error')
     try {
       setProgress({ completed: 0, total: exportProfiles.length, message: '正在打包头像…' })
       const result = await exportAvatarZip(exportProfiles, (completed, total) => setProgress({ completed, total, message: '正在打包头像…' }))
@@ -285,7 +307,7 @@ export default function App() {
       </div>}
 
       <div className="compliance-banner">
-        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>`nat=us` 不保证照片与美国国籍匹配；真人风格照片来自 Random User，增强后仍只作演示占位。本工具不提供批量注册、风控规避或冒名验证。</p>
+        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>头像为原生 1024px AI 合成人像，不是真实人物；姓名与头像不表示美国国籍。本工具不提供批量注册、风控规避或冒名验证。</p>
       </div>
 
       {shareUrl && <div className="share-banner">
@@ -334,7 +356,7 @@ export default function App() {
           {profiles.length === 0 ? <div className="empty-state"><div className="empty-illustration" aria-hidden="true"><Users /><span /></div><h3>从一套可审阅的虚构资料开始</h3><p>{isMobile ? '设置条件后生成一条资料；断网时会明确切换为本地模拟资料。' : '设置数量和条件，然后点击右上角的一键生成。断网时会明确切换为本地模拟资料。'}</p><button type="button" className="button primary" onClick={handleGenerate}><WandSparkles aria-hidden="true" />{isMobile ? '生成一条资料' : `生成 ${settings.count} 条资料`}</button></div>
             : filtered.length === 0 ? <div className="empty-state compact-empty"><Search aria-hidden="true" /><h3>没有匹配的资料</h3><p>请调整关键词或筛选条件。</p></div>
             : isMobile || view === 'cards' ? <div className="cards-list">{visibleProfiles.map((profile) => <ProfileCard key={profile.id} profile={profile} index={profiles.indexOf(profile)} busy={isGenerating}
-              avatarDownloadsAllowed={profile.avatarSource !== 'randomuser-placeholder' || avatarRightsConfirmed} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
+              avatarDownloadsAllowed={!['sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource) || avatarRightsConfirmed} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
               onDownloadAvatar={handleDownloadAvatar} onPreviewAvatar={setPreviewProfile} />)}</div>
               : <><p className="mobile-table-hint"><Info aria-hidden="true" />表格可左右滑动，或切换至卡片查看完整资料。</p><ProfileTable profiles={visibleProfiles} selected={selected} busy={isGenerating} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
                 onToggle={(id) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })} onToggleAll={toggleAll} /></>}
@@ -344,7 +366,7 @@ export default function App() {
           {profiles.length > 0 && !isMobile && <section className="export-panel" aria-labelledby="export-heading">
             <div className="export-copy"><FileDown aria-hidden="true" /><div><h3 id="export-heading">导出与头像打包</h3><p>{selected.size ? `将导出所选 ${selected.size} 条` : `将导出当前筛选的 ${filtered.length} 条`}，表格与 ZIP 按同一序号对应。</p></div></div>
             <div className="rights-box">{exportNeedsRightsConfirmation
-              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解照片许可限制</strong><small>Random User 照片会增强为 512 × 512 PNG，但仍只作演示占位，正式使用前请确认许可。</small></span></label>
+              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解合成人像许可</strong><small>sigils-people 头像为 CC BY 4.0；图片无可见水印，但使用时须保留来源说明，不可冒充真人。</small></span></label>
               : <div className="rights-safe"><ShieldCheck aria-hidden="true" /><span><strong>本地占位或旧版合成头像</strong><small>可直接导出，无需逐张上传。</small></span></div>}</div>
             <label className={`password-export ${includePasswords ? 'enabled' : ''}`}><input type="checkbox" checked={includePasswords} onChange={(event) => setIncludePasswords(event.target.checked)} /><span><strong>导出明文密码</strong><small>{includePasswords ? '警告：明文文件可能被他人读取，请安全保管并及时删除。' : '默认关闭，表格中不包含密码列。'}</small></span></label>
             <div className="export-actions"><button type="button" className="button secondary" onClick={() => exportCsv(exportProfiles, includePasswords)}><Download aria-hidden="true" />CSV</button><button type="button" className="button secondary" onClick={handleExcel}><Download aria-hidden="true" />Excel</button><button type="button" className="button primary" disabled={exportNeedsRightsConfirmation && !avatarRightsConfirmed} onClick={handleZip}><Archive aria-hidden="true" />头像 ZIP</button></div>

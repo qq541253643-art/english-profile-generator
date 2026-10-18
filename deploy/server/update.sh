@@ -35,14 +35,8 @@ cleanup_storage() {
   rm -rf "$APP_ROOT/cache/npm"
 }
 
-configure_avatar_cache() {
-  mkdir -p "$APP_ROOT/avatar-cache" /etc/systemd/system/english-profile-generator.service.d
-  chown www-data:www-data "$APP_ROOT/avatar-cache"
-  cat > /etc/systemd/system/english-profile-generator.service.d/avatar-cache.conf <<EOF
-[Service]
-Environment=EPG_AVATAR_CACHE_DIR=$APP_ROOT/avatar-cache
-ReadWritePaths=$APP_ROOT/avatar-cache
-EOF
+disable_legacy_avatar_enhancement() {
+  rm -f /etc/systemd/system/english-profile-generator.service.d/avatar-cache.conf
   systemctl daemon-reload
 }
 
@@ -64,7 +58,7 @@ if [[ ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 current_tag="$(cat "$CURRENT_VERSION_FILE" 2>/dev/null || true)"
-configure_avatar_cache
+disable_legacy_avatar_enhancement
 if [[ "$current_tag" == "$latest_tag" && -L "$APP_ROOT/current" ]]; then
   cleanup_storage
   echo "Already current: $latest_tag"

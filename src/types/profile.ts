@@ -2,7 +2,7 @@ export type Gender = 'male' | 'female'
 export type GenderFilter = 'random' | Gender
 export type UsernameStyle = 'real' | 'lifestyle' | 'interest' | 'mixed'
 export type DataSource = 'api' | 'mock'
-export type AvatarSource = 'randomuser-placeholder' | 'local-hd-avatar' | 'local-placeholder'
+export type AvatarSource = 'sigils-synthetic' | 'randomuser-placeholder' | 'local-hd-avatar' | 'local-placeholder'
 
 export interface PlatformRules {
   minLength: number
@@ -40,6 +40,8 @@ export interface Profile extends BasePerson {
   password: string
   interests: string[]
   createdAt: string
+  /** 仅当前页面会话使用的已增强图片 URL，不写入历史记录。 */
+  avatarPreviewUrl?: string
 }
 
 export interface RandomUserRecord {

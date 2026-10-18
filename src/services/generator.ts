@@ -1,11 +1,13 @@
 import type { BasePerson, GenerationResult, GeneratorSettings, Profile, ProgressCallback } from '../types/profile'
 import { generateBio } from '../utils/bio'
+import { makeInitialAvatar } from '../utils/avatar'
 import { generateStrongPassword } from '../utils/password'
 import { generateUniqueUsername } from '../utils/username'
 import { createMockPerson } from './mockData'
 import { fetchRandomUsers, isAgeInRange } from './randomUserApi'
+import { assignSyntheticAvatars } from './syntheticAvatarService'
 
-const MAX_API_ROUNDS = 7
+const MAX_API_ROUNDS = 4
 
 function enrichPerson(person: BasePerson, settings: GeneratorSettings, usernames: Set<string>): Profile {
   const generatedBio = generateBio(person.firstName)
@@ -43,7 +45,8 @@ export async function generateProfiles(
     const remaining = settings.count - accepted.length
     onProgress?.(accepted.length, settings.count, round === 0 ? '正在请求远程资料…' : `筛选年龄区间（第 ${round + 1} 轮）…`)
     try {
-      const batch = await fetchRandomUsers({ results: remaining, gender: settings.gender, signal })
+      const requestCount = Math.min(500, Math.max(remaining, remaining * 3))
+      const batch = await fetchRandomUsers({ results: requestCount, gender: settings.gender, signal })
       for (const person of batch) {
         if (accepted.length >= settings.count) break
         if (!isAgeInRange(person.age, settings.minAge, settings.maxAge)) continue
@@ -78,10 +81,22 @@ export async function generateProfiles(
     }
   }
 
+  onProgress?.(0, settings.count, '正在匹配原生 1024px 合成人像…')
+  try {
+    const assigned = await assignSyntheticAvatars(accepted)
+    if (assigned < accepted.length) warnings.push(`${accepted.length - assigned} 条资料未匹配到合适的合成人像，已使用本地占位图。`)
+  } catch {
+    for (const person of accepted) {
+      person.avatarUrl = makeInitialAvatar(person.firstName, person.lastName)
+      person.avatarSource = 'local-placeholder'
+    }
+    warnings.push('高清合成人像服务暂时不可用，已明确切换为本地占位图。')
+  }
+
   const usernames = new Set(existingUsernames)
   const profiles = accepted.map((person, index) => {
     const profile = enrichPerson(person, settings, usernames)
-    onProgress?.(index + 1, settings.count, '正在增强头像并生成用户名、Bio 与密码…')
+    onProgress?.(index + 1, settings.count, '正在生成用户名、Bio 与密码…')
     return profile
   })
   return { profiles, apiCount, mockCount: settings.count - apiCount, warnings }

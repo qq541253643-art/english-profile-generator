@@ -78,5 +78,11 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
 
     const unavailableEnhancement = await fetch(`${state.url}/__avatar-enhanced?url=${encodeURIComponent('https://randomuser.me/api/portraits/men/7.jpg')}`)
     expect(unavailableEnhancement.status).toBe(503)
+
+    const invalidRandomUserRequest = await fetch(`${state.url}/__random-user?results=999&gender=random`)
+    expect(invalidRandomUserRequest.status).toBe(400)
+
+    const invalidSyntheticAvatar = await fetch(`${state.url}/__synthetic-avatar?id=../../private`)
+    expect(invalidSyntheticAvatar.status).toBe(400)
   })
 })

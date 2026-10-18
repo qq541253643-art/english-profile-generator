@@ -45,7 +45,7 @@ interface FetchOptions {
   signal?: AbortSignal
 }
 
-export async function fetchRandomUsers({ results, gender, timeoutMs = 12_000, signal }: FetchOptions): Promise<BasePerson[]> {
+export async function fetchRandomUsers({ results, gender, timeoutMs = 25_000, signal }: FetchOptions): Promise<BasePerson[]> {
   const params = new URLSearchParams({
     nat: 'us',
     results: String(results),
@@ -57,10 +57,17 @@ export async function fetchRandomUsers({ results, gender, timeoutMs = 12_000, si
   const abort = () => controller.abort(signal?.reason)
   signal?.addEventListener('abort', abort, { once: true })
   try {
-    const response = await fetch(`${API_URL}?${params}`, {
+    const proxyParams = new URLSearchParams({ results: String(results), gender })
+    let response = await fetch(`/__random-user?${proxyParams}`, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     })
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+      response = await fetch(`${API_URL}?${params}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      })
+    }
     if (!response.ok) throw new ApiRequestError(`API 返回 HTTP ${response.status}`)
     const payload = await response.json() as { results?: RandomUserRecord[]; error?: string }
     if (payload.error) throw new ApiRequestError(`API 报错：${payload.error}`)

@@ -26,6 +26,21 @@ export default defineConfig({
           }
         },
       },
+      '/__synthetic-people': {
+        target: 'https://ambravo.github.io',
+        changeOrigin: true,
+        secure: true,
+        rewrite: () => '/sigils-people/people/index.json',
+      },
+      '/__synthetic-avatar': {
+        target: 'https://ambravo.github.io',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => {
+          const id = new URL(path, 'http://127.0.0.1').searchParams.get('id') || ''
+          return /^[a-z]{2}-\d{2}$/.test(id) ? `/sigils-people/portraits/l/${id}.avif` : '/__invalid_synthetic_avatar__'
+        },
+      },
     },
   },
   test: {

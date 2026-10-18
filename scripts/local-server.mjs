@@ -7,6 +7,8 @@ import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleAvatarProxy } from './avatar-proxy.mjs'
 import { handleEnhancedAvatar, serverAvatarEnhancementAvailable } from './avatar-enhancer.mjs'
+import { handleRandomUserProxy } from './random-user-proxy.mjs'
+import { handleSyntheticAvatar, handleSyntheticCatalog } from './synthetic-people-proxy.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 setDefaultResultOrder('ipv4first')
@@ -103,6 +105,18 @@ const server = createServer((request, response) => {
   }
   if (requestUrl.pathname === '/__avatar-enhanced') {
     void handleEnhancedAvatar(requestUrl, response, request.method)
+    return
+  }
+  if (requestUrl.pathname === '/__random-user') {
+    void handleRandomUserProxy(requestUrl, response, request.method)
+    return
+  }
+  if (requestUrl.pathname === '/__synthetic-people') {
+    void handleSyntheticCatalog(requestUrl, response, request.method)
+    return
+  }
+  if (requestUrl.pathname === '/__synthetic-avatar') {
+    void handleSyntheticAvatar(requestUrl, response, request.method)
     return
   }
   if (requestUrl.pathname === '/__health') {
