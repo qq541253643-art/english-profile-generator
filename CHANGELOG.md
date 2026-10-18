@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-18
+
+### Fixed
+
+- 修复简体中文 Windows 的 PowerShell 5.1 将无 BOM UTF-8 启动器按系统 ANSI 编码读取，导致桌面快捷方式无法启动的问题。
+- 自动更新下载的安装脚本在执行前统一转换为带 BOM 的 UTF-8。
+
 ## [1.1.1] - 2026-10-18
 
 ### Fixed
@@ -35,7 +42,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/qq541253643-art/english-profile-generator/releases/tag/v1.0.0

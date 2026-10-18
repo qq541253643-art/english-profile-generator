@@ -39,7 +39,9 @@ const zip = new JSZip()
 await addDirectory(zip, join(projectRoot, 'dist'), 'app/dist')
 zip.file('app/package.json', await readFile(join(projectRoot, 'package.json')))
 zip.file('app/scripts/local-server.mjs', await readFile(join(projectRoot, 'scripts', 'local-server.mjs')))
-zip.file('app/windows/launcher.ps1', await readFile(join(projectRoot, 'windows', 'launcher.ps1')))
+const launcherText = (await readFile(join(projectRoot, 'windows', 'launcher.ps1'), 'utf8')).replace(/^\uFEFF/, '')
+const launcherWithBom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(launcherText, 'utf8')])
+zip.file('app/windows/launcher.ps1', launcherWithBom)
 
 const archive = await zip.generateAsync({
   type: 'nodebuffer',

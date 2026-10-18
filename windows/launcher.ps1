@@ -55,6 +55,8 @@ function Update-AppIfNeeded {
     $updateScript = Join-Path $env:TEMP "EnglishProfileGenerator-$latestTag-install.ps1"
     Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/$repository/$latestTag/install.ps1" `
       -OutFile $updateScript -Headers @{ 'User-Agent' = 'EnglishProfileGenerator-Launcher' }
+    $updateText = [IO.File]::ReadAllText($updateScript, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
+    [IO.File]::WriteAllText($updateScript, $updateText, (New-Object Text.UTF8Encoding($true)))
     $powerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $updateProcess = Start-Process -FilePath $powerShell -ArgumentList @(
       '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', "`"$updateScript`""

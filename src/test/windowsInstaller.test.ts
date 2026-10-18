@@ -24,5 +24,6 @@ describe('Windows 一键安装与自动更新契约', () => {
     expect(launcher).toContain('Update-AppIfNeeded')
     expect(launcher).toContain('return $false')
     expect(launcher).toContain('update-status.txt')
+    expect(launcher).toContain('New-Object Text.UTF8Encoding($true)')
   })
 })

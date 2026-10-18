@@ -42,3 +42,20 @@ jobs:
               exit 1
             }
           }
+      - name: Validate launcher with Windows PowerShell 5.1 encoding
+        shell: powershell
+        run: |
+          $source = [IO.File]::ReadAllText((Resolve-Path 'windows/launcher.ps1'), [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
+          $encodedLauncher = Join-Path $env:TEMP 'english-profile-generator-launcher.ps1'
+          [IO.File]::WriteAllText($encodedLauncher, $source, (New-Object Text.UTF8Encoding($true)))
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            $encodedLauncher,
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
