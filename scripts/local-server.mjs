@@ -58,9 +58,14 @@ function isPrivateIpv4(address) {
 }
 
 function getLanAddresses() {
-  return [...new Set(Object.values(networkInterfaces()).flatMap((entries) => entries || [])
-    .filter((entry) => (entry.family === 'IPv4' || entry.family === 4) && !entry.internal && isPrivateIpv4(entry.address))
-    .map((entry) => entry.address))]
+  try {
+    return [...new Set(Object.values(networkInterfaces()).flatMap((entries) => entries || [])
+      .filter((entry) => (entry.family === 'IPv4' || entry.family === 4) && !entry.internal && isPrivateIpv4(entry.address))
+      .map((entry) => entry.address))]
+  } catch {
+    // Hardened service sandboxes can deny the OS call used to enumerate interfaces.
+    return []
+  }
 }
 
 function sendText(response, status, body, type = 'text/plain; charset=utf-8') {

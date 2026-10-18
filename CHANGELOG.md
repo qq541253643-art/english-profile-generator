@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-18
+
+### Fixed
+
+- 本地服务在加固的 systemd 沙箱中无法枚举网卡时安全降级，避免服务器版反复重启。
+- 服务器安装器会等待健康检查成功再申请 HTTPS 证书，并在失败时输出服务诊断信息。
+
 ## [1.1.4] - 2026-10-18
 
 ### Fixed
@@ -62,7 +69,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...v1.1.2

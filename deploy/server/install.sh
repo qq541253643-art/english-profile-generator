@@ -129,7 +129,20 @@ nginx -t
 systemctl daemon-reload
 systemctl enable --now english-profile-generator.service nginx.service english-profile-generator-update.timer
 
-curl -fsS http://127.0.0.1:6820/__health
+service_ready=0
+for _ in {1..30}; do
+  if curl -fsS --max-time 2 http://127.0.0.1:6820/__health; then
+    service_ready=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$service_ready" != "1" ]]; then
+  systemctl --no-pager --full status english-profile-generator.service >&2 || true
+  journalctl -u english-profile-generator.service -n 50 --no-pager >&2 || true
+  echo "Application health check failed before HTTPS setup." >&2
+  exit 1
+fi
 certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email --redirect -d "$DOMAIN"
 systemctl reload nginx
 echo "Deployment complete: https://$DOMAIN"
