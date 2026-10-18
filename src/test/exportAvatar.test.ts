@@ -30,6 +30,11 @@ describe('头像文件名映射', () => {
     expect(avatarFetchUrl('data:image/png;base64,AAAA')).toBe('data:image/png;base64,AAAA')
     expect(avatarFetchUrl('https://example.com/avatar.jpg')).toBe('https://example.com/avatar.jpg')
   })
+
+  it('合成人像使用带版本的兼容地址，绕过旧 Safari 已缓存的 AVIF', () => {
+    expect(avatarFetchUrl('/__synthetic-avatar?id=us-01')).toBe('/__synthetic-avatar?id=us-01&format=jpeg-v1')
+    expect(avatarFetchUrl('/__synthetic-avatar?id=us-01&format=jpeg-v1')).toBe('/__synthetic-avatar?id=us-01&format=jpeg-v1')
+  })
 })
 
 describe('Excel / CSV 导出', () => {

@@ -22,6 +22,11 @@ function getPhotoUpscaler(): Promise<BrowserUpscaler> {
 }
 
 export function avatarFetchUrl(url: string): string {
+  if (url.startsWith('/__synthetic-avatar?')) {
+    const parsed = new URL(url, 'http://local.invalid')
+    parsed.searchParams.set('format', 'jpeg-v1')
+    return `${parsed.pathname}${parsed.search}`
+  }
   try {
     const parsed = new URL(url)
     if (parsed.protocol === 'https:' && parsed.hostname === 'randomuser.me' && parsed.pathname.startsWith('/api/portraits/')) {

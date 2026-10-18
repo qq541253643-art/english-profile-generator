@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-10-18
+
+### Fixed
+
+- 合成人像请求加入 JPEG 兼容格式版本标记，绕过旧版 Safari 先前缓存的 AVIF 响应，升级后无需手动清理 iPhone 缓存。
+
 ## [1.2.2] - 2026-10-18
 
 ### Fixed
@@ -159,7 +165,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...v1.2.0
