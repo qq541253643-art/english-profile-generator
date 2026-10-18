@@ -1,0 +1,138 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$repository = 'qq541253643-art/english-profile-generator'
+$installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
+$appRoot = Join-Path $installRoot 'app'
+$nodeExe = Join-Path $installRoot 'runtime\node\node.exe'
+$serverScript = Join-Path $appRoot 'scripts\local-server.mjs'
+$packageFile = Join-Path $appRoot 'package.json'
+$stateFile = Join-Path $installRoot 'server-state.json'
+$logRoot = Join-Path $installRoot 'logs'
+$updateStatusFile = Join-Path $installRoot 'update-status.txt'
+
+function Test-AppServer {
+  param([string]$Url)
+  try {
+    $health = Invoke-RestMethod -UseBasicParsing -Uri "$Url/__health" -TimeoutSec 2
+    return $health.app -eq 'english-profile-generator'
+  }
+  catch {
+    return $false
+  }
+}
+
+function Open-DefaultBrowser {
+  param([string]$Url)
+  Start-Process $Url
+}
+
+function Update-AppIfNeeded {
+  if (-not (Test-Path $packageFile)) { return $false }
+  try {
+    $currentPackage = Get-Content $packageFile -Raw | ConvertFrom-Json
+    $currentVersion = [version]$currentPackage.version
+    $latestRelease = Invoke-RestMethod -UseBasicParsing -Uri "https://api.github.com/repos/$repository/releases/latest" `
+      -Headers @{ 'User-Agent' = 'EnglishProfileGenerator-Launcher' } -TimeoutSec 4
+    $latestTag = [string]$latestRelease.tag_name
+    if ($latestTag -notmatch '^v\d+\.\d+\.\d+$') { return $false }
+    $latestVersion = [version]$latestTag.TrimStart('v')
+    if ($latestVersion -le $currentVersion) {
+      "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n已是最新版本：v$currentVersion" |
+        Set-Content $updateStatusFile -Encoding UTF8
+      return $false
+    }
+
+    (New-Object -ComObject WScript.Shell).Popup(
+      "发现新版本 $latestTag，正在自动更新。更新完成后会自动打开面板。",
+      4,
+      '英文账号资料生成器',
+      64
+    ) | Out-Null
+
+    New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+    $updateScript = Join-Path $env:TEMP "EnglishProfileGenerator-$latestTag-install.ps1"
+    Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/$repository/$latestTag/install.ps1" `
+      -OutFile $updateScript -Headers @{ 'User-Agent' = 'EnglishProfileGenerator-Launcher' }
+    $powerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $updateProcess = Start-Process -FilePath $powerShell -ArgumentList @(
+      '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', "`"$updateScript`""
+    ) -Wait -PassThru
+    Remove-Item $updateScript -Force -ErrorAction SilentlyContinue
+    if ($updateProcess.ExitCode -ne 0) { throw "自动更新退出码：$($updateProcess.ExitCode)" }
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n已自动更新：v$currentVersion -> $latestTag" |
+      Set-Content $updateStatusFile -Encoding UTF8
+    return $true
+  }
+  catch {
+    New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+    "$(Get-Date -Format o) $($_.Exception.Message)" | Out-File (Join-Path $logRoot 'update.err.log') -Append -Encoding utf8
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n更新检查失败，已继续使用本地版本：$($_.Exception.Message)" |
+      Set-Content $updateStatusFile -Encoding UTF8
+    return $false
+  }
+}
+
+try {
+  if (-not (Test-Path $nodeExe)) { throw '本地运行组件缺失，请重新执行一键安装命令。' }
+  if (-not (Test-Path $serverScript)) { throw '应用文件缺失，请重新执行一键安装命令。' }
+  if (Update-AppIfNeeded) { exit 0 }
+
+  if (Test-Path $stateFile) {
+    try {
+      $state = Get-Content $stateFile -Raw | ConvertFrom-Json
+      if ($state.app -eq 'english-profile-generator' -and (Test-AppServer -Url $state.url)) {
+        Open-DefaultBrowser -Url $state.url
+        exit 0
+      }
+    }
+    catch {
+      # Stale state is replaced when a new local server starts.
+    }
+    Remove-Item $stateFile -Force -ErrorAction SilentlyContinue
+  }
+
+  New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+  $stdoutLog = Join-Path $logRoot 'server.out.log'
+  $stderrLog = Join-Path $logRoot 'server.err.log'
+  $arguments = @(
+    "`"$serverScript`"",
+    '--host', '127.0.0.1',
+    '--port', '0',
+    '--state-file', "`"$stateFile`""
+  )
+
+  $serverProcess = Start-Process -FilePath $nodeExe -ArgumentList $arguments -WorkingDirectory $appRoot `
+    -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+
+  $readyUrl = $null
+  for ($attempt = 0; $attempt -lt 75; $attempt++) {
+    Start-Sleep -Milliseconds 200
+    if ($serverProcess.HasExited) { break }
+    if (Test-Path $stateFile) {
+      try {
+        $state = Get-Content $stateFile -Raw | ConvertFrom-Json
+        if ($state.app -eq 'english-profile-generator' -and (Test-AppServer -Url $state.url)) {
+          $readyUrl = $state.url
+          break
+        }
+      }
+      catch {
+        # The state file can be observed between write and replace; retry briefly.
+      }
+    }
+  }
+
+  if (-not $readyUrl) {
+    $details = if (Test-Path $stderrLog) { (Get-Content $stderrLog -Tail 8) -join "`n" } else { '未生成错误日志。' }
+    throw "本地面板启动超时。`n$details"
+  }
+
+  Open-DefaultBrowser -Url $readyUrl
+}
+catch {
+  $message = "英文账号资料生成器无法启动。`n`n$($_.Exception.Message)"
+  (New-Object -ComObject WScript.Shell).Popup($message, 0, '启动失败', 16) | Out-Null
+  exit 1
+}

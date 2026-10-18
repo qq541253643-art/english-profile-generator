@@ -2,19 +2,36 @@
 
 English Profile Generator 是一个在 Windows 本地运行的中文网页工具，用于社交账号资料草稿、原型演示和界面测试。它生成的是虚构资料，不是真实身份。
 
-## 一键启动（Windows 10/11）
+## 一条命令安装（Windows 10/11）
 
-1. 安装 [Node.js 22 LTS 或更高版本](https://nodejs.org/)。
-2. 下载或克隆本项目。
-3. 双击 `start.bat`。
-4. 首次启动会自动执行 `npm install`，随后打开 Chrome/Edge 默认浏览器。
+打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
-命令行方式：
+```powershell
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/main/install.ps1 | iex
+```
+
+安装器无需管理员权限，会自动完成以下操作：
+
+- 下载经过 SHA-256 校验的最新正式版 Windows 应用包。
+- 在 `%LOCALAPPDATA%\EnglishProfileGenerator` 安装独立便携运行组件，不修改系统 Node.js 环境。
+- 在当前用户桌面创建“英文账号资料生成器”快捷方式。
+- 安装完成后立即用默认浏览器打开本地面板。
+
+以后双击桌面快捷方式即可使用。快捷方式会先检查 GitHub 最新正式 Release：发现新版本时自动更新后再打开；断网或检查失败时直接使用本地版本，不影响已有资料。更新状态保存在安装目录的 `update-status.txt`。
+
+重复执行同一条安装命令可以修复安装或重新创建快捷方式。浏览器 IndexedDB 中的历史资料不会因为应用更新而被删除。
+
+## 源码方式启动
+
+如果需要参与开发，安装 Node.js 22 LTS 或更高版本后，在项目目录执行：
+
 
 ```bash
 npm install
 npm run start
 ```
+
+Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开发，不会创建桌面快捷方式。
 
 ## 已实现功能
 
@@ -30,6 +47,7 @@ npm run start
 - 上传本地已授权头像；未确认授权提示时禁用头像下载。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
+- Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
 
 ## 数据与合规说明
 
@@ -69,13 +87,13 @@ npm run preview   # 预览生产构建
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.0.0 -> 1.0.1
-npm run version:minor   # 1.0.0 -> 1.1.0
-npm run version:major   # 1.0.0 -> 2.0.0
+npm run version:patch   # 1.1.0 -> 1.1.1
+npm run version:minor   # 1.1.0 -> 1.2.0
+npm run version:major   # 1.1.0 -> 2.0.0
 git push --follow-tags
 ```
 
-`npm version` 会同步更新 `package.json` / `package-lock.json`、生成 Git 提交和 `vX.Y.Z` 标签。发布前请先更新 `CHANGELOG.md`。
+`npm version` 会同步更新 `package.json` / `package-lock.json`、生成 Git 提交和 `vX.Y.Z` 标签。发布前请同步更新 `install.ps1` 中的版本号和 `CHANGELOG.md`。推送标签后，GitHub Actions 会构建 Windows 应用包、生成 SHA-256 校验文件并上传到对应 Release。
 
 ## 许可证
 
