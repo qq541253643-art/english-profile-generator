@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-10-18
+
+### Fixed
+
+- 从旧版服务器更新时，在检查“已是最新版”之前安装头像增强缓存的 systemd 配置，确保 iPhone 使用服务器 AI 增强。
+
 ## [1.1.8] - 2026-10-18
 
 ### Added
@@ -105,7 +111,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...HEAD
+[1.1.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.5...v1.1.6

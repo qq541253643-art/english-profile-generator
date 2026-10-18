@@ -64,6 +64,7 @@ if [[ ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 current_tag="$(cat "$CURRENT_VERSION_FILE" 2>/dev/null || true)"
+configure_avatar_cache
 if [[ "$current_tag" == "$latest_tag" && -L "$APP_ROOT/current" ]]; then
   cleanup_storage
   echo "Already current: $latest_tag"
@@ -103,7 +104,6 @@ ln -sfn "$release_path" "$APP_ROOT/current.next"
 mv -Tf "$APP_ROOT/current.next" "$APP_ROOT/current"
 printf '%s\n' "$latest_tag" > "$CURRENT_VERSION_FILE"
 install -m 0755 "$release_path/deploy/server/update.sh" /usr/local/sbin/english-profile-generator-update
-configure_avatar_cache
 cleanup_storage
 
 if [[ "${SKIP_RESTART:-0}" != "1" ]] && systemctl cat english-profile-generator.service >/dev/null 2>&1; then

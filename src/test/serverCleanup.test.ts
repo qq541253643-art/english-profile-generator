@@ -14,5 +14,6 @@ describe('服务器空间清理契约', () => {
     expect(updater).toContain('cleanup_storage')
     expect(updater).toContain('/usr/local/sbin/english-profile-generator-update')
     expect(updater).toContain('rm -rf "$APP_ROOT/cache/npm"')
+    expect(updater.indexOf('configure_avatar_cache\nif [[ "$current_tag"')).toBeGreaterThan(-1)
   })
 })
