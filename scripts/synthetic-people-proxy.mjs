@@ -1,7 +1,9 @@
 import { transcodeAvifToJpeg } from './image-codecs.mjs'
 
 const CATALOG_URL = 'https://ambravo.github.io/sigils-people/people/index.json'
-const AVATAR_ROOT = 'https://ambravo.github.io/sigils-people/portraits/l'
+// The browser's final avatar is 512 × 512, so fetching the native 512px source
+// avoids downloading and decoding four times as many source pixels.
+const AVATAR_ROOT = 'https://ambravo.github.io/sigils-people/portraits/m'
 const VALID_ID = /^[a-z]{2}-\d{2}$/
 const MAX_CATALOG_BYTES = 1024 * 1024
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024

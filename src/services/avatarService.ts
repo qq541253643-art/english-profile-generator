@@ -24,7 +24,7 @@ function getPhotoUpscaler(): Promise<BrowserUpscaler> {
 export function avatarFetchUrl(url: string): string {
   if (url.startsWith('/__synthetic-avatar?')) {
     const parsed = new URL(url, 'http://local.invalid')
-    parsed.searchParams.set('format', 'jpeg-v1')
+    parsed.searchParams.set('format', 'jpeg-v2')
     return `${parsed.pathname}${parsed.search}`
   }
   try {
@@ -163,7 +163,7 @@ export async function prepareProfileAvatars(
   let completed = 0
   let failed = 0
   const prepared = [...profiles]
-  const workerCount = Math.min(2, profiles.length)
+  const workerCount = Math.min(4, profiles.length)
 
   const worker = async () => {
     while (cursor < profiles.length) {

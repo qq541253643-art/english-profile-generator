@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.2.8] - 2026-10-18
+
+### Changed
+
+- 合成人像改用与最终输出一致的原生 512px 源图，减少首次下载体积和 AVIF 转码耗时，同时保持 512 × 512 PNG 清晰度。
+- 桌面批量头像准备并发数从 2 提高到 4，并更新头像兼容地址版本，避免浏览器继续使用旧的 1024px 缓存。
+
 ## [1.2.7] - 2026-10-18
 
 ### Fixed
@@ -199,7 +206,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.8...HEAD
+[1.2.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.4...v1.2.5

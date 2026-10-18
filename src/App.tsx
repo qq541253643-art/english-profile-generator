@@ -419,7 +419,7 @@ export default function App() {
       </div>}
 
       <div className="compliance-banner">
-        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>头像为原生 1024px AI 合成人像，不是真实人物；姓名与头像不表示美国国籍。本工具不提供批量注册、风控规避或冒名验证。</p>
+        <Info aria-hidden="true" /><p><strong>虚构资料，非真实身份。</strong>头像为原生 512px AI 合成人像，不是真实人物；姓名与头像不表示美国国籍。本工具不提供批量注册、风控规避或冒名验证。</p>
       </div>
 
       {shareUrl && <div className="share-banner">

@@ -99,7 +99,7 @@ export async function generateProfiles(
     }
   }
 
-  onProgress?.(0, settings.count, '正在匹配原生 1024px 合成人像…')
+  onProgress?.(0, settings.count, '正在匹配高清 512px 合成人像…')
   try {
     const assigned = await assignSyntheticAvatars(accepted, new Set(uniqueness?.avatarIds || []))
     if (assigned < accepted.length) warnings.push(`${accepted.length - assigned} 条资料未匹配到合适的合成人像，已使用本地占位图。`)

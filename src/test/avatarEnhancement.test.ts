@@ -22,4 +22,15 @@ describe('真人照片 AI 增强', () => {
     expect(model.size).toBeGreaterThan(1_000)
     expect(shard.size).toBeGreaterThan(500_000)
   })
+
+  it('合成人像直接使用与最终输出一致的 512px 源图并限制并发', async () => {
+    const [service, syntheticProxy] = await Promise.all([
+      readFile(resolve(projectRoot, 'src/services/avatarService.ts'), 'utf8'),
+      readFile(resolve(projectRoot, 'scripts/synthetic-people-proxy.mjs'), 'utf8'),
+    ])
+    expect(syntheticProxy).toContain('/portraits/m')
+    expect(syntheticProxy).not.toContain('/portraits/l')
+    expect(service).toContain('Math.min(4, profiles.length)')
+    expect(service).toContain("set('format', 'jpeg-v2')")
+  })
 })

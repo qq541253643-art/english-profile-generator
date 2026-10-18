@@ -50,7 +50,7 @@ export function AvatarPreview({ profile, onClose }: Props) {
       onCancel={(event) => { event.preventDefault(); onClose() }} onClose={onClose}>
       {profile && <div className="avatar-preview-content">
         <div className="avatar-preview-head">
-          <div><h2 id="avatar-preview-title">{profile.displayName} 的头像</h2><p>{isEnhancing ? '正在生成 AI 超分辨率头像…' : profile.avatarSource === 'sigils-synthetic' ? '原生 1024px 合成人像 · 512 × 512 PNG' : profile.avatarSource === 'randomuser-placeholder' ? '512 × 512 AI 增强预览' : '512 × 512 大图预览'}</p></div>
+          <div><h2 id="avatar-preview-title">{profile.displayName} 的头像</h2><p>{isEnhancing ? '正在生成 AI 超分辨率头像…' : profile.avatarSource === 'sigils-synthetic' ? '原生 512px 合成人像 · 512 × 512 PNG' : profile.avatarSource === 'randomuser-placeholder' ? '512 × 512 AI 增强预览' : '512 × 512 大图预览'}</p></div>
           <button type="button" className="icon-button" aria-label="关闭头像预览" onClick={onClose}><X aria-hidden="true" /></button>
         </div>
         <img src={previewUrl || profileAvatarUrl(profile)} alt={`${profile.displayName} 的头像大图`} />
