@@ -22,8 +22,8 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; background: var(--canvas); scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; min-height: 100vh; color: var(--ink); background: var(--canvas); line-height: 1.5; }
+html { min-width: 320px; background: var(--canvas); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; color: var(--ink); background: var(--canvas); line-height: 1.5; }
 button, input, select { font: inherit; }
 button, select, input[type="checkbox"] { cursor: pointer; touch-action: manipulation; }
 button:disabled, select:disabled, input:disabled { cursor: not-allowed; }

@@ -1,13 +1,13 @@
 {
   "name": "english-profile-generator",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "Windows 本地运行的虚构英文社交账号资料生成器",
   "scripts": {
     "dev": "vite",
     "start": "vite --host 127.0.0.1 --open",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/verify-build-compat.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-18
+
+### Fixed
+
+- 将生产构建的 JavaScript 与 CSS 兼容目标锁定为 Safari 15，避免媒体查询被压缩成 iPhone 7 不支持的范围语法，修复手机扫码后仍显示桌面布局的问题。
+- 发布构建新增 CSS 兼容性校验，若再次出现旧版 Safari 无法解析的媒体查询范围语法将直接阻止发布。
+
 ## [1.2.0] - 2026-10-18
 
 ### Added
@@ -144,7 +151,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...v1.2.0
 [1.1.11]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...v1.1.11
 [1.1.10]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...v1.1.10
