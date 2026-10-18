@@ -25,8 +25,9 @@ case "$architecture" in
   *) echo "Unsupported server architecture: $architecture" >&2; exit 1 ;;
 esac
 
-mkdir -p "$APP_ROOT/runtime" "$APP_ROOT/cache" "$APP_ROOT/avatar-cache"
+mkdir -p "$APP_ROOT/runtime" "$APP_ROOT/cache" "$APP_ROOT/avatar-cache" "$APP_ROOT/profile-store"
 chown www-data:www-data "$APP_ROOT/avatar-cache"
+chown www-data:www-data "$APP_ROOT/profile-store"
 archive="node-$NODE_VERSION-$node_arch.tar.xz"
 curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/$archive" -o "$APP_ROOT/cache/$archive"
 curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/SHASUMS256.txt" -o "$APP_ROOT/cache/SHASUMS256.txt"
@@ -60,9 +61,10 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=full
-ReadWritePaths=$APP_ROOT/avatar-cache
+ReadWritePaths=$APP_ROOT/avatar-cache $APP_ROOT/profile-store
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 Environment=EPG_AVATAR_CACHE_DIR=$APP_ROOT/avatar-cache
+Environment=EPG_PROFILE_STORE_DIR=$APP_ROOT/profile-store
 
 [Install]
 WantedBy=multi-user.target
@@ -116,6 +118,15 @@ server {
     location = /__avatar-enhanced {
         limit_req zone=epg_avatar burst=3 nodelay;
         proxy_read_timeout 45s;
+        proxy_pass http://127.0.0.1:6820;
+        proxy_set_header Host 127.0.0.1;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+
+    location = /__profiles {
+        limit_req zone=epg_avatar burst=15 nodelay;
+        client_max_body_size 1m;
         proxy_pass http://127.0.0.1:6820;
         proxy_set_header Host 127.0.0.1;
         proxy_set_header X-Forwarded-Proto \$scheme;

@@ -49,8 +49,8 @@ export function ProfileCard(props: Props) {
           <div><span className="record-number">#{String(index + 1).padStart(3, '0')}</span><h3>{profile.displayName}</h3>
             <p>{profile.age} 岁 · {profile.gender === 'male' ? '男' : '女'} · 虚构资料</p></div>
           <div className="card-actions">
-            <button type="button" className="icon-button" aria-label="重新生成这条资料" disabled={busy} onClick={() => props.onRegenerate(profile)}><RefreshCw aria-hidden="true" /></button>
-            <button type="button" className="icon-button danger" aria-label="删除这条资料" onClick={() => props.onDelete(profile.id)}><Trash2 aria-hidden="true" /></button>
+            {profile.canDelete !== false && <button type="button" className="icon-button" aria-label="重新生成这条资料" disabled={busy} onClick={() => props.onRegenerate(profile)}><RefreshCw aria-hidden="true" /></button>}
+            {profile.canDelete !== false && <button type="button" className="icon-button danger" aria-label="删除这条资料" onClick={() => props.onDelete(profile.id)}><Trash2 aria-hidden="true" /></button>}
           </div>
         </div>
 

@@ -95,6 +95,7 @@ button { color: inherit; }
 .settings-panel legend, .field-label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; }
 .segmented { display: grid; border: 1px solid #b8c5be; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.65); }
 .segmented.four { grid-template-columns: repeat(4, 1fr); }
+.segmented.two { grid-template-columns: repeat(2, 1fr); }
 .segmented button { min-height: 40px; border: 0; border-right: 1px solid #b8c5be; background: transparent; font-size: 13px; font-variant-numeric: tabular-nums; }
 .segmented button:last-child { border-right: 0; }
 .segmented button.active { color: white; background: var(--accent); }

@@ -2,7 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$appVersion = '1.1.11'
+$appVersion = '1.2.0'
 $repository = 'qq541253643-art/english-profile-generator'
 $installRoot = Join-Path $env:LOCALAPPDATA 'EnglishProfileGenerator'
 $appRoot = Join-Path $installRoot 'app'
@@ -103,23 +103,85 @@ function Install-PortableNode {
   Move-Item $stagedNode $nodeRoot
 }
 
+function New-AppIcon {
+  param([string]$Path)
+  Add-Type -AssemblyName System.Drawing
+  if (-not ('EnglishProfileGenerator.NativeIconMethods' -as [type])) {
+    Add-Type -TypeDefinition @'
+namespace EnglishProfileGenerator {
+  using System;
+  using System.Runtime.InteropServices;
+  public static class NativeIconMethods {
+    [DllImport("user32.dll")]
+    public static extern bool DestroyIcon(IntPtr handle);
+  }
+}
+'@
+  }
+
+  $bitmap = New-Object System.Drawing.Bitmap 256, 256
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  $shapePath = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $background = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(16, 40, 36))
+  $textBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
+  $font = New-Object System.Drawing.Font 'Segoe UI', 82, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
+  $format = New-Object System.Drawing.StringFormat
+  $iconHandle = [IntPtr]::Zero
+  $icon = $null
+  $stream = $null
+  try {
+    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $graphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $graphics.Clear([System.Drawing.Color]::Transparent)
+    $shapePath.AddArc(8, 8, 62, 62, 180, 90)
+    $shapePath.AddArc(186, 8, 62, 62, 270, 90)
+    $shapePath.AddArc(186, 186, 62, 62, 0, 90)
+    $shapePath.AddArc(8, 186, 62, 62, 90, 90)
+    $shapePath.CloseFigure()
+    $graphics.FillPath($background, $shapePath)
+    $format.Alignment = [System.Drawing.StringAlignment]::Center
+    $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+    $graphics.DrawString('EP', $font, $textBrush, [System.Drawing.RectangleF]::new(0, 2, 256, 244), $format)
+
+    $iconHandle = $bitmap.GetHicon()
+    $icon = ([System.Drawing.Icon]::FromHandle($iconHandle)).Clone()
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Create)
+    $icon.Save($stream)
+  }
+  finally {
+    if ($stream) { $stream.Dispose() }
+    if ($icon) { $icon.Dispose() }
+    if ($iconHandle -ne [IntPtr]::Zero) { [EnglishProfileGenerator.NativeIconMethods]::DestroyIcon($iconHandle) | Out-Null }
+    $format.Dispose()
+    $font.Dispose()
+    $textBrush.Dispose()
+    $background.Dispose()
+    $shapePath.Dispose()
+    $graphics.Dispose()
+    $bitmap.Dispose()
+  }
+}
+
 function New-DesktopShortcut {
   $desktop = [Environment]::GetFolderPath('Desktop')
   if (-not $desktop) { throw '无法确定 Windows 桌面路径。' }
   $shortcutPath = Join-Path $desktop '英文账号资料生成器.lnk'
-  $launcher = Join-Path $appRoot 'windows\launcher.ps1'
-  $launcherCommand = "& '" + $launcher.Replace("'", "''") + "'"
-  $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($launcherCommand))
-  $powerShell = (Get-Process -Id $PID).Path
+  $launcher = Join-Path $appRoot 'windows\launcher.vbs'
+  $icon = Join-Path $appRoot 'windows\app.ico'
+  New-AppIcon -Path $icon
+  $wscript = Join-Path $env:SystemRoot 'System32\wscript.exe'
   $shell = New-Object -ComObject WScript.Shell
+  Remove-Item $shortcutPath -Force -ErrorAction SilentlyContinue
   $shortcut = $shell.CreateShortcut($shortcutPath)
-  $shortcut.TargetPath = $powerShell
-  $shortcut.Arguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand $encodedCommand"
+  $shortcut.TargetPath = $wscript
+  $shortcut.Arguments = "//B //NoLogo `"$launcher`""
   $shortcut.WorkingDirectory = $appRoot
   $shortcut.Description = '启动英文账号资料生成器本地面板'
-  $shortcut.IconLocation = "$env:SystemRoot\System32\imageres.dll,67"
+  $shortcut.IconLocation = "$icon,0"
   $shortcut.WindowStyle = 7
   $shortcut.Save()
+  $iconRefresh = Join-Path $env:SystemRoot 'System32\ie4uinit.exe'
+  if (Test-Path $iconRefresh) { Start-Process $iconRefresh -ArgumentList '-show' -WindowStyle Hidden -Wait }
   return $shortcutPath
 }
 
@@ -152,6 +214,7 @@ try {
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\synthetic-people-proxy.mjs'))) { throw '应用包缺少高清合成人像代理。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'scripts\local-server.mjs'))) { throw '应用包缺少本地服务组件。' }
   if (-not (Test-Path (Join-Path $sourceRoot.FullName 'windows\launcher.ps1'))) { throw '应用包缺少 Windows 启动器。' }
+  if (-not (Test-Path (Join-Path $sourceRoot.FullName 'windows\launcher.vbs'))) { throw '应用包缺少无窗口启动器。' }
 
   Write-Step '安装应用并创建桌面快捷方式'
   Stop-InstalledServer
@@ -173,11 +236,9 @@ try {
   Write-Host '以后双击快捷方式即可使用；启动时会自动检查并安装最新正式版本。' -ForegroundColor Green
 
   if ($env:EPG_SKIP_AUTO_LAUNCH -ne '1') {
-    $launcher = Join-Path $appRoot 'windows\launcher.ps1'
-    $launcherCommand = "& '" + $launcher.Replace("'", "''") + "'"
-    $encodedLauncherCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($launcherCommand))
-    Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') `
-      -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', $encodedLauncherCommand)
+    $launcher = Join-Path $appRoot 'windows\launcher.vbs'
+    Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\wscript.exe') `
+      -ArgumentList "//B //NoLogo `"$launcher`"" -WindowStyle Hidden
   }
 }
 catch {

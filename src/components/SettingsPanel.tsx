@@ -7,12 +7,13 @@ interface Props {
   disabled: boolean
   hasProfiles: boolean
   singleOnly?: boolean
+  maxCount?: 10 | 300
   onChange: (settings: GeneratorSettings) => void
 }
 
 const counts = [1, 10, 100, 300] as const
 
-export function SettingsPanel({ settings, disabled, hasProfiles, singleOnly = false, onChange }: Props) {
+export function SettingsPanel({ settings, disabled, hasProfiles, singleOnly = false, maxCount = 300, onChange }: Props) {
   const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 900px)').matches)
   const [mobileOpen, setMobileOpen] = useState(!hasProfiles)
 
@@ -44,8 +45,8 @@ export function SettingsPanel({ settings, disabled, hasProfiles, singleOnly = fa
 
       {!singleOnly && <fieldset disabled={disabled}>
         <legend>生成数量</legend>
-        <div className="segmented four">
-          {counts.map((count) => (
+        <div className={`segmented ${maxCount === 10 ? 'two' : 'four'}`}>
+          {counts.filter((count) => count <= maxCount).map((count) => (
             <button key={count} type="button" className={settings.count === count ? 'active' : ''}
               onClick={() => update('count', count)} aria-pressed={settings.count === count}>{count}</button>
           ))}

@@ -40,6 +40,17 @@ disable_legacy_avatar_enhancement() {
   systemctl daemon-reload
 }
 
+configure_profile_store() {
+  install -d -m 0750 -o www-data -g www-data "$APP_ROOT/profile-store"
+  install -d -m 0755 /etc/systemd/system/english-profile-generator.service.d
+  cat >/etc/systemd/system/english-profile-generator.service.d/profile-store.conf <<EOF
+[Service]
+ReadWritePaths=$APP_ROOT/profile-store
+Environment=EPG_PROFILE_STORE_DIR=$APP_ROOT/profile-store
+EOF
+  systemctl daemon-reload
+}
+
 if [[ ! -x "$NODE_BIN" || ! -x "$NPM_BIN" ]]; then
   echo "Node.js runtime is missing under $APP_ROOT/runtime/node." >&2
   exit 1
@@ -59,6 +70,7 @@ fi
 
 current_tag="$(cat "$CURRENT_VERSION_FILE" 2>/dev/null || true)"
 disable_legacy_avatar_enhancement
+configure_profile_store
 if [[ "$current_tag" == "$latest_tag" && -L "$APP_ROOT/current" ]]; then
   cleanup_storage
   echo "Already current: $latest_tag"

@@ -9,11 +9,13 @@ import { handleAvatarProxy } from './avatar-proxy.mjs'
 import { handleEnhancedAvatar, serverAvatarEnhancementAvailable } from './avatar-enhancer.mjs'
 import { handleRandomUserProxy } from './random-user-proxy.mjs'
 import { handleSyntheticAvatar, handleSyntheticCatalog } from './synthetic-people-proxy.mjs'
+import { createProfileStore, SERVER_HISTORY_RETENTION_DAYS } from './profile-store.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 setDefaultResultOrder('ipv4first')
 const projectRoot = resolve(scriptDirectory, '..')
 const packageVersion = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')).version
+const profileStore = createProfileStore(process.env.EPG_PROFILE_STORE_DIR || '')
 
 function readArguments(values) {
   const options = {}
@@ -84,11 +86,6 @@ function sendText(response, status, body, type = 'text/plain; charset=utf-8') {
 }
 
 const server = createServer((request, response) => {
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    response.setHeader('Allow', 'GET, HEAD')
-    return sendText(response, 405, 'Method Not Allowed')
-  }
-
   let requestHost
   try {
     requestHost = new URL(`http://${request.headers.host || ''}`).hostname
@@ -99,6 +96,14 @@ const server = createServer((request, response) => {
   if (!allowedHosts.has(requestHost)) return sendText(response, 403, 'Forbidden')
 
   const requestUrl = new URL(request.url || '/', `http://${requestHost}`)
+  if (requestUrl.pathname === '/__profiles' && profileStore) {
+    void profileStore(request, response)
+    return
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    response.setHeader('Allow', 'GET, HEAD')
+    return sendText(response, 405, 'Method Not Allowed')
+  }
   if (requestUrl.pathname === '/__avatar') {
     void handleAvatarProxy(requestUrl, response)
     return
@@ -123,7 +128,12 @@ const server = createServer((request, response) => {
     const address = server.address()
     const port = address && typeof address !== 'string' ? address.port : requestedPort
     const lanUrls = getLanAddresses().map((lanAddress) => `http://${lanAddress}:${port}`)
-    return sendText(response, 200, JSON.stringify({ app: 'english-profile-generator', version: packageVersion, lanUrls, avatarEnhancement: serverAvatarEnhancementAvailable() ? 'server' : 'browser' }), 'application/json; charset=utf-8')
+    return sendText(response, 200, JSON.stringify({
+      app: 'english-profile-generator', version: packageVersion, lanUrls,
+      avatarEnhancement: serverAvatarEnhancementAvailable() ? 'server' : 'browser',
+      profilePersistence: profileStore ? 'server' : 'browser',
+      profileRetentionDays: profileStore ? SERVER_HISTORY_RETENTION_DAYS : 90,
+    }), 'application/json; charset=utf-8')
   }
 
   let decodedPath

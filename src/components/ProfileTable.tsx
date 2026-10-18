@@ -29,8 +29,8 @@ export function ProfileTable({ profiles, selected, busy, ...props }: Props) {
             <td><div className="inline-copy"><code>@{profile.username}</code><button type="button" className="icon-button" aria-label="复制用户名" onClick={() => props.onCopy(profile.username, '用户名')}><Clipboard aria-hidden="true" /></button></div></td>
             <td>{profile.age}</td><td>{profile.gender === 'male' ? '男' : '女'}</td><td className="bio-cell" title={profile.bio}>{profile.bio}</td>
             <td><span className={`source-dot ${profile.dataSource}`}>{profile.dataSource === 'api' ? 'API' : '本地模拟'}</span></td>
-            <td><div className="row-actions"><button type="button" className="icon-button" aria-label="重新生成" disabled={busy} onClick={() => props.onRegenerate(profile)}><RefreshCw aria-hidden="true" /></button>
-              <button type="button" className="icon-button danger" aria-label="删除" onClick={() => props.onDelete(profile.id)}><Trash2 aria-hidden="true" /></button></div></td>
+            <td><div className="row-actions">{profile.canDelete !== false && <button type="button" className="icon-button" aria-label="重新生成" disabled={busy} onClick={() => props.onRegenerate(profile)}><RefreshCw aria-hidden="true" /></button>}
+              {profile.canDelete !== false && <button type="button" className="icon-button danger" aria-label="删除" onClick={() => props.onDelete(profile.id)}><Trash2 aria-hidden="true" /></button>}</div></td>
           </tr>
         ))}</tbody>
       </table>

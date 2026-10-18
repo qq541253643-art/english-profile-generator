@@ -40,6 +40,8 @@ export interface Profile extends BasePerson {
   password: string
   interests: string[]
   createdAt: string
+  /** 服务器公开共享列表中，当前浏览器是否有权删除该条。 */
+  canDelete?: boolean
   /** 仅当前页面会话使用的已增强图片 URL，不写入历史记录。 */
   avatarPreviewUrl?: string
 }

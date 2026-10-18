@@ -85,4 +85,100 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     const invalidSyntheticAvatar = await fetch(`${state.url}/__synthetic-avatar?id=../../private`)
     expect(invalidSyntheticAvatar.status).toBe(400)
   })
+
+  it('服务器模式向所有访客公开同一列表，并仅允许创建者删除且不保存密码', async () => {
+    const temporaryDirectory = await mkdtemp(join(tmpdir(), 'epg-shared-'))
+    temporaryDirectories.push(temporaryDirectory)
+    const webRoot = join(temporaryDirectory, 'dist')
+    const storeRoot = join(temporaryDirectory, 'profile-store')
+    const stateFile = join(temporaryDirectory, 'server-state.json')
+    await mkdir(webRoot, { recursive: true })
+    await mkdir(storeRoot, { recursive: true })
+    await writeFile(join(webRoot, 'index.html'), '<!doctype html><title>公共列表</title>', 'utf8')
+    await writeFile(join(storeRoot, 'shared-profiles.json'), JSON.stringify([{
+      id: '22222222-2222-4222-8222-222222222222',
+      firstName: 'Old', lastName: 'Profile', displayName: 'Old Profile', username: 'old.profile',
+      age: 30, gender: 'male', bio: 'Expired profile.', bioZh: '已过期资料。', interests: [],
+      avatarUrl: '/__synthetic-avatar?id=us-02', avatarSource: 'sigils-synthetic', dataSource: 'mock',
+      createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), ownerId: 'a'.repeat(64),
+    }]), 'utf8')
+
+    const server = spawn(process.execPath, [
+      serverScript,
+      '--root', webRoot,
+      '--host', '127.0.0.1',
+      '--port', '0',
+      '--state-file', stateFile,
+    ], { stdio: 'ignore', env: { ...process.env, EPG_PROFILE_STORE_DIR: storeRoot } })
+    processes.push(server)
+    const state = await waitForState(stateFile, server)
+    const headers = { 'X-EPG-Client': 'web' }
+
+    const ownerLoad = await fetch(`${state.url}/__profiles`, { headers })
+    const ownerCookie = ownerLoad.headers.get('set-cookie')?.split(';')[0]
+    expect(ownerCookie).toMatch(/^epg_visitor=[a-f0-9]{64}$/)
+    expect(await ownerLoad.json()).toMatchObject({ profiles: [], retentionDays: 3, visibility: 'public-shared' })
+
+    const savedProfile = {
+      id: '11111111-1111-4111-8111-111111111111',
+      firstName: 'Maya', lastName: 'Davis', displayName: 'Maya Davis', username: 'maya.davis',
+      age: 28, gender: 'female', bio: 'Testing a shared profile.', bioZh: '测试公共资料。', interests: ['photo'],
+      avatarUrl: '/__synthetic-avatar?id=us-01', avatarSource: 'sigils-synthetic', dataSource: 'api',
+      createdAt: '2000-01-01T00:00:00.000Z', password: 'must-not-be-stored',
+    }
+    const save = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: [savedProfile] }),
+    })
+    expect(save.status).toBe(200)
+
+    const tooMany = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: Array.from({ length: 11 }, () => savedProfile) }),
+    })
+    expect(tooMany.status).toBe(400)
+
+    const visitorLoad = await fetch(`${state.url}/__profiles`, { headers })
+    const visitorCookie = visitorLoad.headers.get('set-cookie')?.split(';')[0]
+    const visitorBody = await visitorLoad.json() as { profiles: Array<Record<string, unknown>> }
+    expect(visitorBody.profiles).toHaveLength(1)
+    expect(visitorBody.profiles[0]).toMatchObject({ id: savedProfile.id, canDelete: false })
+    expect(visitorBody.profiles[0]).not.toHaveProperty('password')
+    expect(Date.parse(String(visitorBody.profiles[0].createdAt))).toBeGreaterThan(Date.now() - 10_000)
+
+    const ownershipTakeover = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: visitorCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: [{ ...savedProfile, displayName: 'Taken Over' }] }),
+    })
+    expect(ownershipTakeover.status).toBe(409)
+
+    const externalAvatar = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: visitorCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: [{ ...savedProfile, id: '33333333-3333-4333-8333-333333333333', avatarUrl: 'https://tracker.example/avatar.png' }] }),
+    })
+    expect(externalAvatar.status).toBe(400)
+
+    const visitorDelete = await fetch(`${state.url}/__profiles`, {
+      method: 'DELETE',
+      headers: { ...headers, Cookie: visitorCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [savedProfile.id] }),
+    })
+    expect(await visitorDelete.json()).toMatchObject({ deleted: 0 })
+
+    const ownerView = await fetch(`${state.url}/__profiles`, { headers: { ...headers, Cookie: ownerCookie! } })
+    expect(await ownerView.json()).toMatchObject({ profiles: [{ id: savedProfile.id, canDelete: true }] })
+    expect(await readFile(join(storeRoot, 'shared-profiles.json'), 'utf8')).not.toContain('must-not-be-stored')
+
+    const ownerDelete = await fetch(`${state.url}/__profiles`, {
+      method: 'DELETE',
+      headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [savedProfile.id] }),
+    })
+    expect(await ownerDelete.json()).toMatchObject({ deleted: 1 })
+    expect((await fetch(`${state.url}/__profiles`, { headers })).status).toBe(200)
+  })
 })

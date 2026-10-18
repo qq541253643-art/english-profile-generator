@@ -11,7 +11,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { downloadAvatar, exportAvatarZip, prepareProfileAvatars, releaseProfileAvatar } from './services/avatarService'
 import { exportCsv, exportExcel } from './services/exportService'
 import { generateProfiles } from './services/generator'
-import { clearProfiles, deleteProfiles, loadProfiles, saveProfiles } from './services/historyDb'
+import { clearProfiles, deleteProfiles, getHistoryMode, loadProfiles, saveProfiles, type HistoryMode } from './services/historyService'
 import type { GeneratorSettings, Profile } from './types/profile'
 import { DEFAULT_PLATFORM_RULES } from './utils/username'
 import packageInfo from '../package.json'
@@ -50,6 +50,7 @@ export default function App() {
   const [previewProfile, setPreviewProfile] = useState<Profile | null>(null)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 680px)').matches)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [historyMode, setHistoryMode] = useState<HistoryMode | 'loading'>('loading')
   const [shareUrl, setShareUrl] = useState(() => (
     ['127.0.0.1', 'localhost'].includes(window.location.hostname) ? '' : window.location.origin
   ))
@@ -63,15 +64,47 @@ export default function App() {
   }
 
   useEffect(() => {
-    loadProfiles().then((items) => {
+    getHistoryMode().then((mode) => {
+      setHistoryMode(mode)
+      return loadProfiles().then((items) => ({ items, mode }))
+    }).then(({ items, mode }) => {
       if (items.length) {
         setProfiles(items)
         setView(preferredView(items.length))
-        addToast(`已恢复 ${items.length} 条历史；密码已为本会话重新生成。`, 'info')
+        addToast(`${mode === 'server' ? '已载入公共列表' : '已恢复本地历史'} ${items.length} 条；密码已为本会话重新生成。`, 'info')
       }
-    }).catch(() => addToast('无法读取本地历史，可继续生成新资料。', 'error'))
+    }).catch(() => addToast('无法读取历史，可继续生成新资料。', 'error'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (historyMode !== 'server') return
+    setSettings((current) => current.count > 10 ? { ...current, count: 10 } : current)
+    let active = true
+    const refresh = () => loadProfiles().then((remote) => {
+      if (!active) return
+      setProfiles((current) => {
+        const currentById = new Map(current.map((profile) => [profile.id, profile]))
+        const remoteIds = new Set(remote.map((profile) => profile.id))
+        current.filter((profile) => !remoteIds.has(profile.id)).forEach(releaseProfileAvatar)
+        return remote.map((profile) => {
+          const existing = currentById.get(profile.id)
+          return existing ? {
+            ...profile,
+            password: existing.password,
+            avatarPreviewUrl: existing.avatarPreviewUrl,
+          } : profile
+        })
+      })
+    }).catch(() => undefined)
+    const timer = window.setInterval(refresh, 30_000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [historyMode])
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 680px)')
@@ -139,6 +172,7 @@ export default function App() {
     const generationSettings = isMobile && settings.count !== 1 ? { ...settings, count: 1 as const } : settings
     setProgress({ completed: 0, total: generationSettings.count, message: '正在准备请求…' })
     try {
+      const activeHistoryMode = historyMode === 'loading' ? await getHistoryMode() : historyMode
       const result = await generateProfiles(generationSettings, new Set(profiles.map((item) => item.username)),
         (completed, total, message) => operation === operationRef.current && setProgress({ completed, total, message }))
       if (operation !== operationRef.current) return
@@ -151,10 +185,11 @@ export default function App() {
         prepared.profiles.forEach(releaseProfileAvatar)
         throw new Error(`${prepared.failed} 张头像高清处理失败，本次未保存。请稍后重试。`)
       }
-      const removedIds = await saveProfiles(prepared.profiles)
+      const newProfiles = prepared.profiles.map((profile) => activeHistoryMode === 'server' ? { ...profile, canDelete: true } : profile)
+      const removedIds = await saveProfiles(newProfiles)
       setProfiles((current) => {
         current.filter((profile) => removedIds.includes(profile.id)).forEach(releaseProfileAvatar)
-        return [...prepared.profiles, ...current].filter((profile) => !removedIds.includes(profile.id))
+        return [...newProfiles, ...current].filter((profile) => !removedIds.includes(profile.id))
       })
       setLastSummary({ apiCount: result.apiCount, mockCount: result.mockCount, warnings: result.warnings })
       setView(preferredView(result.profiles.length))
@@ -198,13 +233,17 @@ export default function App() {
   }
 
   const remove = async (ids: string[]) => {
+    const deletableIds = historyMode === 'server'
+      ? ids.filter((id) => profiles.some((profile) => profile.id === id && profile.canDelete === true))
+      : ids
+    if (!deletableIds.length) return addToast('公共列表中只能删除当前浏览器生成的资料。', 'info')
     setProfiles((current) => {
-      current.filter((profile) => ids.includes(profile.id)).forEach(releaseProfileAvatar)
-      return current.filter((profile) => !ids.includes(profile.id))
+      current.filter((profile) => deletableIds.includes(profile.id)).forEach(releaseProfileAvatar)
+      return current.filter((profile) => !deletableIds.includes(profile.id))
     })
-    setSelected((current) => new Set([...current].filter((id) => !ids.includes(id))))
-    await deleteProfiles(ids).catch(() => addToast('界面已删除，但本地历史同步失败。', 'error'))
-    addToast(`已删除 ${ids.length} 条资料。`)
+    setSelected((current) => new Set([...current].filter((id) => !deletableIds.includes(id))))
+    await deleteProfiles(deletableIds).catch(() => addToast('界面已删除，但历史同步失败。', 'error'))
+    addToast(`已删除 ${deletableIds.length} 条资料。`)
   }
 
   const regenerate = async (profile: Profile) => {
@@ -217,7 +256,7 @@ export default function App() {
       const prepared = await prepareProfileAvatars(result.profiles,
         (completed, total) => setProgress({ completed, total, message: '正在准备 512 × 512 高清头像…' }))
       if (prepared.failed > 0) throw new Error('头像高清处理失败，请稍后重试。')
-      const replacement = prepared.profiles[0]
+      const replacement = historyMode === 'server' ? { ...prepared.profiles[0], canDelete: true } : prepared.profiles[0]
       await deleteProfiles([profile.id])
       const removedIds = await saveProfiles([replacement])
       setProfiles((current) => current.map((item) => {
@@ -233,7 +272,9 @@ export default function App() {
   const deduplicate = async () => {
     const seenUsers = new Set<string>(); const seenAvatars = new Set<string>(); const duplicateIds: string[] = []
     for (const profile of profiles) {
-      if (seenUsers.has(profile.username) || seenAvatars.has(profile.avatarUrl)) duplicateIds.push(profile.id)
+      if (seenUsers.has(profile.username) || seenAvatars.has(profile.avatarUrl)) {
+        if (historyMode !== 'server' || profile.canDelete === true) duplicateIds.push(profile.id)
+      }
       else { seenUsers.add(profile.username); seenAvatars.add(profile.avatarUrl) }
     }
     if (!duplicateIds.length) return addToast('未发现重复用户名或头像 URL。', 'info')
@@ -242,16 +283,28 @@ export default function App() {
 
   const saveHistory = async () => {
     try {
-      const removedIds = await saveProfiles(profiles)
+      const savable = historyMode === 'server' ? profiles.filter((profile) => profile.canDelete === true) : profiles
+      const removedIds = await saveProfiles(savable)
       if (removedIds.length) setProfiles((current) => current.filter((profile) => !removedIds.includes(profile.id)))
-      addToast(`已保存 ${profiles.length - removedIds.length} 条非敏感资料，密码未保存。`)
+      addToast(`已保存 ${savable.length - removedIds.length} 条非敏感资料，密码未保存。`)
     }
     catch { addToast('保存历史失败。', 'error') }
   }
 
   const clearAll = async () => {
-    if (!window.confirm('确定清空当前资料和本地历史吗？此操作无法撤销。')) return
-    profiles.forEach(releaseProfileAvatar); setProfiles([]); setSelected(new Set()); await clearProfiles(); addToast('已清空本地历史。')
+    const serverMode = historyMode === 'server'
+    if (!window.confirm(serverMode ? '确定删除当前浏览器生成的全部公共资料吗？其他人的资料不会受影响。' : '确定清空当前资料和本地历史吗？此操作无法撤销。')) return
+    await clearProfiles()
+    if (serverMode) {
+      setProfiles((current) => {
+        current.filter((profile) => profile.canDelete === true).forEach(releaseProfileAvatar)
+        return current.filter((profile) => profile.canDelete !== true)
+      })
+      setSelected(new Set())
+      addToast('已删除当前浏览器生成的公共资料。')
+    } else {
+      profiles.forEach(releaseProfileAvatar); setProfiles([]); setSelected(new Set()); addToast('已清空本地历史。')
+    }
   }
 
   const toggleAll = () => {
@@ -324,7 +377,7 @@ export default function App() {
       </div>}
 
       <main className="workspace" id="main-workspace">
-        <SettingsPanel settings={settings} disabled={isGenerating} hasProfiles={profiles.length > 0} singleOnly={isMobile}
+        <SettingsPanel settings={settings} disabled={isGenerating} hasProfiles={profiles.length > 0} singleOnly={isMobile} maxCount={historyMode === 'server' ? 10 : 300}
           onChange={(next) => setSettings(isMobile ? { ...next, count: 1 } : next)} />
 
         <section className="results-panel" aria-label="生成结果">
@@ -372,7 +425,9 @@ export default function App() {
             <div className="export-actions"><button type="button" className="button secondary" onClick={() => exportCsv(exportProfiles, includePasswords)}><Download aria-hidden="true" />CSV</button><button type="button" className="button secondary" onClick={handleExcel}><Download aria-hidden="true" />Excel</button><button type="button" className="button primary" disabled={exportNeedsRightsConfirmation && !avatarRightsConfirmed} onClick={handleZip}><Archive aria-hidden="true" />头像 ZIP</button></div>
           </section>}
 
-          {profiles.length > 0 && <div className="history-footer"><span><History aria-hidden="true" />历史仅存本机；自动保留最近 90 天、最多 500 条且不超过约 50 MB</span><button type="button" className="text-button danger-text" onClick={clearAll}><Trash2 aria-hidden="true" />清空全部</button></div>}
+          {profiles.length > 0 && <div className="history-footer"><span><History aria-hidden="true" />{historyMode === 'server'
+            ? '服务器公共列表；所有访客可见，非敏感资料保留 3 天，密码不上传'
+            : '历史仅存本机；自动保留最近 90 天、最多 500 条且不超过约 50 MB'}</span><button type="button" className="text-button danger-text" onClick={clearAll}><Trash2 aria-hidden="true" />{historyMode === 'server' ? '删除我生成的' : '清空全部'}</button></div>}
         </section>
       </main>
 

@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-18
+
+### Added
+
+- 服务器版新增所有访客共同可见的公共资料列表；非敏感资料保存 3 天，密码永不上传，创建者可提前删除自己的资料。
+- 公共列表每 30 秒及窗口重新聚焦时同步，服务器每小时清理过期记录，并设置 5000 条与约 50 MB 双重上限。
+- 服务器版单次生成限制为 1 或 10 条，手机仍固定 1 条；Windows 本地版继续保留 100/300 批量选项。
+
+### Fixed
+
+- Windows 桌面快捷方式改用 `wscript.exe` 无窗口包装器启动，消除双击后短暂闪出的 PowerShell 窗口。
+- 快捷方式使用安装时生成的独立“EP”应用图标，并主动刷新 Windows 图标缓存，不再显示系统图片占位图标。
+
 ## [1.1.11] - 2026-10-18
 
 ### Fixed
@@ -131,7 +144,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.11...v1.2.0
 [1.1.11]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.10...v1.1.11
 [1.1.10]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.9...v1.1.10
 [1.1.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.8...v1.1.9

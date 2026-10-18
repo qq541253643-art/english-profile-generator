@@ -15,9 +15,19 @@ describe('Windows 一键安装与自动更新契约', () => {
     const packageVersion = (JSON.parse(packageText) as { version: string }).version
     expect(installer).toContain(`$appVersion = '${packageVersion}'`)
     expect(installer).toContain('Get-FileHash -Algorithm SHA256')
-    expect(installer).toContain('-EncodedCommand $encodedCommand')
+    expect(installer).toContain("'System32\\wscript.exe'")
+    expect(installer).toContain('windows\\launcher.vbs')
+    expect(installer).toContain('New-AppIcon -Path $icon')
+    expect(installer).toContain('$shortcut.IconLocation = "$icon,0"')
     expect(installer).toContain('Remove-StaleInstallerFiles')
     expect(installer).toContain('EPG_SKIP_AUTO_LAUNCH')
+  })
+
+  it('无窗口包装器在后台启动 PowerShell', async () => {
+    const launcher = await readFile(resolve(projectRoot, 'windows', 'launcher.vbs'), 'utf8')
+    expect(launcher).toContain('shell.Run command, 0, False')
+    expect(launcher).toContain('-WindowStyle Hidden')
+    expect(launcher).toContain('launcher.ps1')
   })
 
   it('快捷方式启动器先检查最新正式 Release，失败时保留本地版本', async () => {
