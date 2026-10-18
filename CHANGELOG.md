@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-18
+
+### Fixed
+
+- 服务器更新器改用 GitHub 官方 `codeload.github.com` 源码分发节点，解决部分腾讯云网络访问 GitHub 归档地址超时的问题。
+
 ## [1.1.3] - 2026-10-18
 
 ### Added
@@ -56,7 +62,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.1.0...v1.1.1

@@ -40,7 +40,7 @@ mkdir -p "$stage_path"
 trap 'rm -rf "$stage_path"' EXIT
 
 curl -fsSL --connect-timeout 8 --max-time 120 \
-  "https://github.com/$REPOSITORY/archive/refs/tags/$latest_tag.tar.gz" \
+  "https://codeload.github.com/$REPOSITORY/tar.gz/refs/tags/$latest_tag" \
   -o "$archive_path"
 tar -xzf "$archive_path" -C "$stage_path" --strip-components=1
 
