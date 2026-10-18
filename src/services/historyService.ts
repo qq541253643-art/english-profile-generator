@@ -1,5 +1,4 @@
 import type { Profile } from '../types/profile'
-import { generateStrongPassword } from '../utils/password'
 import {
   clearProfiles as clearLocalProfiles,
   deleteProfiles as deleteLocalProfiles,
@@ -14,7 +13,7 @@ type HealthResponse = {
   profileRetentionDays?: number
 }
 
-type StoredProfile = Omit<Profile, 'password' | 'avatarPreviewUrl' | 'canDelete'> & { canDelete?: boolean }
+type StoredProfile = Omit<Profile, 'avatarPreviewUrl' | 'canDelete'> & { canDelete?: boolean }
 
 let modePromise: Promise<HistoryMode> | null = null
 
@@ -44,14 +43,14 @@ async function serverRequest<T>(method: 'GET' | 'POST' | 'DELETE', body?: unknow
 }
 
 function storable(profile: Profile): StoredProfile {
-  const { password: _password, avatarPreviewUrl: _avatarPreviewUrl, canDelete: _canDelete, ...stored } = profile
+  const { avatarPreviewUrl: _avatarPreviewUrl, canDelete: _canDelete, ...stored } = profile
   return stored
 }
 
 export async function loadProfiles(): Promise<Profile[]> {
   if (await getHistoryMode() === 'browser') return loadLocalProfiles()
   const result = await serverRequest<{ profiles: StoredProfile[] }>('GET')
-  return result.profiles.map((profile) => ({ ...profile, password: generateStrongPassword() }))
+  return result.profiles
 }
 
 export async function saveProfiles(profiles: Profile[]): Promise<string[]> {

@@ -11,6 +11,44 @@ const MAX_REQUEST_BYTES = 1024 * 1024
 const MAX_SHARED_PROFILES = 5_000
 const MAX_SHARED_BYTES = 50 * 1024 * 1024
 const STORE_FILENAME = 'shared-profiles.json'
+const PASSWORD_LENGTH = 20
+const PASSWORD_LOWER = 'abcdefghijkmnopqrstuvwxyz'
+const PASSWORD_UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+const PASSWORD_DIGITS = '23456789'
+const PASSWORD_SPECIAL = '!@#$%^&*_-+=?'
+const PASSWORD_ALL = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGITS + PASSWORD_SPECIAL
+
+function randomIndex(length) {
+  const limit = 256 - (256 % length)
+  let value
+  do value = randomBytes(1)[0]
+  while (value >= limit)
+  return value % length
+}
+
+function pickPasswordCharacter(characters) {
+  return characters[randomIndex(characters.length)]
+}
+
+function generateStrongPassword() {
+  const characters = [
+    pickPasswordCharacter(PASSWORD_LOWER),
+    pickPasswordCharacter(PASSWORD_UPPER),
+    pickPasswordCharacter(PASSWORD_DIGITS),
+    pickPasswordCharacter(PASSWORD_SPECIAL),
+  ]
+  while (characters.length < PASSWORD_LENGTH) characters.push(pickPasswordCharacter(PASSWORD_ALL))
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1)
+    ;[characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]]
+  }
+  return characters.join('')
+}
+
+function validPassword(value) {
+  return typeof value === 'string' && value.length === PASSWORD_LENGTH
+    && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value)
+}
 
 function json(response, status, payload, visitorId) {
   const body = JSON.stringify(payload)
@@ -55,6 +93,7 @@ function sanitizeProfile(value, ownerId, now) {
   const username = text(value.username, 40)
   const bio = text(value.bio, 500)
   const bioZh = text(value.bioZh, 500)
+  const password = validPassword(value.password) ? value.password : null
   const avatarUrl = text(value.avatarUrl, 10_000)
   const gender = value.gender === 'male' || value.gender === 'female' ? value.gender : null
   const avatarSource = ['sigils-synthetic', 'randomuser-placeholder', 'local-hd-avatar', 'local-placeholder'].includes(value.avatarSource)
@@ -64,11 +103,11 @@ function sanitizeProfile(value, ownerId, now) {
   const interests = Array.isArray(value.interests)
     ? value.interests.filter((item) => typeof item === 'string' && item.length <= 50).slice(0, 12)
     : null
-  if (!id || !PROFILE_ID.test(id) || !firstName || !lastName || !displayName || !username || !bio || !bioZh
+  if (!id || !PROFILE_ID.test(id) || !firstName || !lastName || !displayName || !username || !bio || !bioZh || !password
     || !avatarUrl || !gender || !avatarSource || !validAvatarUrl(avatarUrl, avatarSource) || !dataSource
     || !Number.isInteger(age) || age < 18 || age > 45 || !interests) return null
   return {
-    id, firstName, lastName, displayName, username, age, gender, bio, bioZh, interests,
+    id, firstName, lastName, displayName, username, age, gender, bio, bioZh, password, interests,
     avatarUrl, avatarSource, dataSource, createdAt: new Date(now).toISOString(), ownerId,
   }
 }
@@ -141,7 +180,10 @@ export function createProfileStore(directory) {
   mkdirSync(directory, { recursive: true, mode: 0o700 })
   const path = join(directory, STORE_FILENAME)
   const cleanup = () => {
-    const retention = retain(readStore(path))
+    const migrated = readStore(path).map((profile) => validPassword(profile.password)
+      ? profile
+      : { ...profile, password: generateStrongPassword() })
+    const retention = retain(migrated)
     writeStore(path, retention.kept)
     return retention
   }

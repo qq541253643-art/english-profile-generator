@@ -86,7 +86,7 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     expect(invalidSyntheticAvatar.status).toBe(400)
   })
 
-  it('服务器模式向所有访客公开同一列表，并仅允许创建者删除且不保存密码', async () => {
+  it('服务器模式向所有访客共享同一列表和固定密码，并仅允许创建者删除', async () => {
     const temporaryDirectory = await mkdtemp(join(tmpdir(), 'epg-shared-'))
     temporaryDirectories.push(temporaryDirectory)
     const webRoot = join(temporaryDirectory, 'dist')
@@ -124,7 +124,7 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
       firstName: 'Maya', lastName: 'Davis', displayName: 'Maya Davis', username: 'maya.davis',
       age: 28, gender: 'female', bio: 'Testing a shared profile.', bioZh: '测试公共资料。', interests: ['photo'],
       avatarUrl: '/__synthetic-avatar?id=us-01', avatarSource: 'sigils-synthetic', dataSource: 'api',
-      createdAt: '2000-01-01T00:00:00.000Z', password: 'must-not-be-stored',
+      createdAt: '2000-01-01T00:00:00.000Z', password: 'Aa2!abcdefghijklmnop',
     }
     const save = await fetch(`${state.url}/__profiles`, {
       method: 'POST',
@@ -132,6 +132,13 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
       body: JSON.stringify({ profiles: [savedProfile] }),
     })
     expect(save.status).toBe(200)
+
+    const weakPassword = await fetch(`${state.url}/__profiles`, {
+      method: 'POST',
+      headers: { ...headers, Cookie: ownerCookie!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profiles: [{ ...savedProfile, id: '55555555-5555-4555-8555-555555555555', password: 'weak-password' }] }),
+    })
+    expect(weakPassword.status).toBe(400)
 
     const tooMany = await fetch(`${state.url}/__profiles`, {
       method: 'POST',
@@ -144,8 +151,7 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     const visitorCookie = visitorLoad.headers.get('set-cookie')?.split(';')[0]
     const visitorBody = await visitorLoad.json() as { profiles: Array<Record<string, unknown>> }
     expect(visitorBody.profiles).toHaveLength(1)
-    expect(visitorBody.profiles[0]).toMatchObject({ id: savedProfile.id, canDelete: false })
-    expect(visitorBody.profiles[0]).not.toHaveProperty('password')
+    expect(visitorBody.profiles[0]).toMatchObject({ id: savedProfile.id, password: savedProfile.password, canDelete: false })
     expect(Date.parse(String(visitorBody.profiles[0].createdAt))).toBeGreaterThan(Date.now() - 10_000)
 
     const ownershipTakeover = await fetch(`${state.url}/__profiles`, {
@@ -170,8 +176,8 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     expect(await visitorDelete.json()).toMatchObject({ deleted: 0 })
 
     const ownerView = await fetch(`${state.url}/__profiles`, { headers: { ...headers, Cookie: ownerCookie! } })
-    expect(await ownerView.json()).toMatchObject({ profiles: [{ id: savedProfile.id, canDelete: true }] })
-    expect(await readFile(join(storeRoot, 'shared-profiles.json'), 'utf8')).not.toContain('must-not-be-stored')
+    expect(await ownerView.json()).toMatchObject({ profiles: [{ id: savedProfile.id, password: savedProfile.password, canDelete: true }] })
+    expect(await readFile(join(storeRoot, 'shared-profiles.json'), 'utf8')).toContain(savedProfile.password)
 
     const ownerDelete = await fetch(`${state.url}/__profiles`, {
       method: 'DELETE',
@@ -180,5 +186,23 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     })
     expect(await ownerDelete.json()).toMatchObject({ deleted: 1 })
     expect((await fetch(`${state.url}/__profiles`, { headers })).status).toBe(200)
+
+    const { password: _legacyPassword, ...legacyProfile } = {
+      ...savedProfile,
+      id: '44444444-4444-4444-8444-444444444444',
+      createdAt: new Date().toISOString(),
+      ownerId: 'b'.repeat(64),
+    }
+    await writeFile(join(storeRoot, 'shared-profiles.json'), JSON.stringify([legacyProfile]), 'utf8')
+    const firstMigrationLoad = await fetch(`${state.url}/__profiles`, { headers }).then((response) => response.json()) as { profiles: Array<{ password: string }> }
+    const secondMigrationLoad = await fetch(`${state.url}/__profiles`, { headers }).then((response) => response.json()) as { profiles: Array<{ password: string }> }
+    const migratedPassword = firstMigrationLoad.profiles[0].password
+    expect(migratedPassword).toHaveLength(20)
+    expect(migratedPassword).toMatch(/[a-z]/)
+    expect(migratedPassword).toMatch(/[A-Z]/)
+    expect(migratedPassword).toMatch(/\d/)
+    expect(migratedPassword).toMatch(/[^A-Za-z0-9]/)
+    expect(secondMigrationLoad.profiles[0].password).toBe(migratedPassword)
+    expect(JSON.parse(await readFile(join(storeRoot, 'shared-profiles.json'), 'utf8'))[0].password).toBe(migratedPassword)
   })
 })

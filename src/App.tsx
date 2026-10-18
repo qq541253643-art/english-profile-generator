@@ -71,7 +71,7 @@ export default function App() {
       if (items.length) {
         setProfiles(items)
         setView(preferredView(items.length))
-        addToast(`${mode === 'server' ? '已载入公共列表' : '已恢复本地历史'} ${items.length} 条；密码已为本会话重新生成。`, 'info')
+        addToast(`${mode === 'server' ? '已载入内部共享列表' : '已恢复本地历史'} ${items.length} 条；密码保持生成时的值。`, 'info')
       }
     }).catch(() => addToast('无法读取历史，可继续生成新资料。', 'error'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +91,6 @@ export default function App() {
           const existing = currentById.get(profile.id)
           return existing ? {
             ...profile,
-            password: existing.password,
             avatarPreviewUrl: existing.avatarPreviewUrl,
           } : profile
         })
@@ -286,7 +285,7 @@ export default function App() {
       const savable = historyMode === 'server' ? profiles.filter((profile) => profile.canDelete === true) : profiles
       const removedIds = await saveProfiles(savable)
       if (removedIds.length) setProfiles((current) => current.filter((profile) => !removedIds.includes(profile.id)))
-      addToast(`已保存 ${savable.length - removedIds.length} 条非敏感资料，密码未保存。`)
+      addToast(`已保存 ${savable.length - removedIds.length} 条资料，密码保持生成时的值。`)
     }
     catch { addToast('保存历史失败。', 'error') }
   }
@@ -382,7 +381,9 @@ export default function App() {
 
         <section className="results-panel" aria-label="生成结果">
           <div className="results-heading">
-            <div><div className="heading-line"><h2>资料工作台</h2><span>{profiles.length} 条已保存</span></div><p>密码仅保留在当前会话，历史恢复时会重新生成。</p></div>
+            <div><div className="heading-line"><h2>资料工作台</h2><span>{profiles.length} 条已保存</span></div><p>{historyMode === 'server'
+              ? '密码随内部共享资料保存 3 天，各设备显示一致；请勿复用真实账号密码。'
+              : '密码随本地历史保存，各次打开保持一致；请勿复用真实账号密码。'}</p></div>
             {!isMobile && <div className="view-toggle" aria-label="查看方式">
               <button type="button" className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')} aria-pressed={view === 'cards'}><Grid2X2 aria-hidden="true" />卡片</button>
               <button type="button" className={view === 'table' ? 'active' : ''} onClick={() => setView('table')} aria-pressed={view === 'table'}><LayoutList aria-hidden="true" />表格</button>
@@ -426,8 +427,8 @@ export default function App() {
           </section>}
 
           {profiles.length > 0 && <div className="history-footer"><span><History aria-hidden="true" />{historyMode === 'server'
-            ? '服务器公共列表；所有访客可见，非敏感资料保留 3 天，密码不上传'
-            : '历史仅存本机；自动保留最近 90 天、最多 500 条且不超过约 50 MB'}</span><button type="button" className="text-button danger-text" onClick={clearAll}><Trash2 aria-hidden="true" />{historyMode === 'server' ? '删除我生成的' : '清空全部'}</button></div>}
+            ? '服务器内部共享列表；打开此地址者可见，资料和密码保留 3 天'
+            : '历史和密码仅存本机；自动保留最近 90 天、最多 500 条且不超过约 50 MB'}</span><button type="button" className="text-button danger-text" onClick={clearAll}><Trash2 aria-hidden="true" />{historyMode === 'server' ? '删除我生成的' : '清空全部'}</button></div>}
         </section>
       </main>
 

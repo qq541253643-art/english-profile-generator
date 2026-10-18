@@ -1,6 +1,6 @@
 import { openDB } from 'idb'
 import type { Profile } from '../types/profile'
-import { generateStrongPassword } from '../utils/password'
+import { generateStrongPassword, hasStrongPasswordComplexity } from '../utils/password'
 
 const DB_NAME = 'english-profile-generator'
 const STORE_NAME = 'profile-history'
@@ -8,7 +8,7 @@ export const HISTORY_RETENTION_DAYS = 90
 export const HISTORY_MAX_PROFILES = 500
 export const HISTORY_MAX_BYTES = 50 * 1024 * 1024
 
-type StoredProfile = Omit<Profile, 'password' | 'avatarPreviewUrl'>
+type StoredProfile = Omit<Profile, 'avatarPreviewUrl'> & { password?: string }
 
 export interface HistoryRetentionResult<T> {
   kept: T[]
@@ -55,7 +55,7 @@ async function database() {
 export async function saveProfiles(profiles: Profile[]): Promise<string[]> {
   const db = await database()
   const tx = db.transaction(STORE_NAME, 'readwrite')
-  await Promise.all(profiles.map(({ password: _password, avatarPreviewUrl: _avatarPreviewUrl, ...profile }) => tx.store.put(profile satisfies StoredProfile)))
+  await Promise.all(profiles.map(({ avatarPreviewUrl: _avatarPreviewUrl, ...profile }) => tx.store.put(profile satisfies StoredProfile)))
   const retention = applyHistoryRetention(await tx.store.getAll() as StoredProfile[])
   await Promise.all(retention.removedIds.map((id) => tx.store.delete(id)))
   await tx.done
@@ -66,10 +66,15 @@ export async function loadProfiles(): Promise<Profile[]> {
   const db = await database()
   const tx = db.transaction(STORE_NAME, 'readwrite')
   const retention = applyHistoryRetention(await tx.store.getAll() as StoredProfile[])
+  const migrated = retention.kept.map((profile) => (
+    typeof profile.password === 'string' && hasStrongPasswordComplexity(profile.password)
+      ? profile as Profile
+      : { ...profile, password: generateStrongPassword() } as Profile
+  ))
+  await Promise.all(migrated.map((profile) => tx.store.put(profile)))
   await Promise.all(retention.removedIds.map((id) => tx.store.delete(id)))
   await tx.done
-  return retention.kept
-    .map((profile) => ({ ...profile, password: generateStrongPassword() }))
+  return migrated
 }
 
 export async function deleteProfiles(ids: string[]): Promise<void> {
