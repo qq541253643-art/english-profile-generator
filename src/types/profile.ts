@@ -1,6 +1,7 @@
 export type Gender = 'male' | 'female'
 export type GenderFilter = 'random' | Gender
 export type UsernameStyle = 'real' | 'lifestyle' | 'interest' | 'mixed'
+export type BioStyle = 'news' | 'lifestyle' | 'mixed'
 export type DataSource = 'api' | 'mock'
 export type AvatarSource = 'sigils-synthetic' | 'randomuser-placeholder' | 'local-hd-avatar' | 'local-placeholder'
 
@@ -17,6 +18,7 @@ export interface GeneratorSettings {
   minAge: number
   maxAge: number
   style: UsernameStyle
+  bioStyle: BioStyle
   allowNumbers: boolean
   platformRules: PlatformRules
 }

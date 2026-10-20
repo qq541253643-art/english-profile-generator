@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-20
+
+### Added
+
+- 新增“账号方向”设置，提供新闻解说、生活分享和新闻与生活混合三种选择。
+- 新闻签名词库覆盖实时新闻、美国国家新闻、国际新闻、政治政策、经济社会、重大事件与每日热点，共 1152 组中英文对应组合。
+
+### Changed
+
+- “新闻解说”成为默认账号方向；新生成的 Bio 改为简短的新闻背景、事实影响和多角度解读表达，不再默认使用文艺生活句式。
+
 ## [1.2.9] - 2026-10-18
 
 ### Fixed
@@ -212,7 +223,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.9...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.9...v1.3.0
 [1.2.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.8...v1.2.9
 [1.2.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.6...v1.2.7

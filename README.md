@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.2.9/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.3.0/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -69,7 +69,8 @@ sudo bash deploy/server/install.sh profile.example.com
 - 服务器桌面端数量 1 / 10，Windows 本地桌面端数量 1 / 10 / 100 / 300；手机端固定为 1。性别随机 / 男 / 女，虚构年龄 18–45。
 - 真实姓名、生活昵称、兴趣主题和混合用户名模板。
 - 用户名长度、句点、下划线规则可配置；只做格式验证，不做平台占用检查。
-- 本地英文 Bio 模板和对应中文翻译。
+- “新闻解说”作为默认账号方向，签名覆盖实时新闻、美国国家新闻、国际新闻、政治政策、经济社会和热点事件解读；也可切换到生活分享或混合方向。
+- 新闻与生活签名均由本地英文模板生成并提供准确中文翻译，不调用大模型 API。
 - 使用 `crypto.getRandomValues` 生成默认 20 位强密码；不使用 `Math.random`。
 - 卡片 / 表格查看，搜索、筛选、批量选择、删除、去重和单条重生成。
 - 卡片编号后显示精确到分钟的北京时间，表格视图同步显示编号与生成时间。
@@ -114,14 +115,14 @@ npm run build     # TypeScript 检查 + 生产构建
 npm run preview   # 预览生产构建
 ```
 
-测试覆盖 API 解析、年龄范围、用户名字符合法性与唯一性、Bio 多样性、强密码复杂度、Excel/CSV 导出和头像文件名映射。
+测试覆盖 API 解析、年龄范围、用户名字符合法性与唯一性、新闻 Bio 默认值与多样性、强密码复杂度、Excel/CSV 导出和头像文件名映射。
 
 ## 版本管理
 
 项目遵循 [Semantic Versioning 2.0.0](https://semver.org/lang/zh-CN/)，并在 [CHANGELOG.md](./CHANGELOG.md) 记录变更。
 
 ```bash
-npm run version:patch   # 1.2.8 -> 1.2.9
+npm run version:patch   # 1.3.0 -> 1.3.1
 npm run version:minor   # 1.2.4 -> 1.3.0
 npm run version:major   # 1.2.4 -> 2.0.0
 git push --follow-tags

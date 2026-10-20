@@ -22,6 +22,7 @@ const defaultSettings: GeneratorSettings = {
   minAge: 18,
   maxAge: 45,
   style: 'mixed',
+  bioStyle: 'news',
   allowNumbers: true,
   platformRules: DEFAULT_PLATFORM_RULES,
 }

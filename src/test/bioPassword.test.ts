@@ -4,18 +4,26 @@ import { generateStrongPassword, hasStrongPasswordComplexity } from '../utils/pa
 import { generateUuid } from '../utils/uuid'
 
 describe('Bio 生成', () => {
-  it('生成完整的中英文对照且具有句式多样性', () => {
+  it('默认生成新闻解说方向的中英文签名且具有句式多样性', () => {
     const bios = Array.from({ length: 40 }, () => generateBio('Mia'))
     expect(bios.every((item) => item.bio.length > 20 && item.bioZh.length > 10)).toBe(true)
     expect(new Set(bios.map((item) => item.bio)).size).toBeGreaterThan(3)
+    expect(bios.every((item) => item.bio.length <= 120)).toBe(true)
+    expect(bios.every((item) => !item.bio.includes('Making time for'))).toBe(true)
   })
 
-  it('至少可生成 500 组互不重复的中英文 Bio', () => {
+  it('新闻解说方向至少可生成 500 组互不重复的中英文 Bio', () => {
     const english = new Set<string>()
     const chinese = new Set<string>()
-    const bios = Array.from({ length: 500 }, () => generateUniqueBio('Mia', english, chinese))
+    const bios = Array.from({ length: 500 }, () => generateUniqueBio('Mia', english, chinese, 'news'))
     expect(new Set(bios.map((item) => item.bio)).size).toBe(500)
     expect(new Set(bios.map((item) => item.bioZh)).size).toBe(500)
+  })
+
+  it('仍可手动选择生活分享方向', () => {
+    const bio = generateBio('Mia', 'lifestyle')
+    expect(bio.bio).toContain('Making time for')
+    expect(bio.bioZh).toContain('留出时间')
   })
 })
 

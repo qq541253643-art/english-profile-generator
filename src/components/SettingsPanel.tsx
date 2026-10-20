@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
-import type { GeneratorSettings, GenderFilter, UsernameStyle } from '../types/profile'
+import type { BioStyle, GeneratorSettings, GenderFilter, UsernameStyle } from '../types/profile'
 
 interface Props {
   settings: GeneratorSettings
@@ -52,6 +52,17 @@ export function SettingsPanel({ settings, disabled, hasProfiles, singleOnly = fa
           ))}
         </div>
       </fieldset>}
+
+      <label className="field-label" htmlFor="bio-style">账号方向</label>
+      <div className="select-wrap">
+        <select id="bio-style" value={settings.bioStyle} disabled={disabled}
+          onChange={(event) => update('bioStyle', event.target.value as BioStyle)}>
+          <option value="news">新闻解说（默认）</option>
+          <option value="lifestyle">生活分享</option>
+          <option value="mixed">新闻与生活混合</option>
+        </select><ChevronDown aria-hidden="true" />
+      </div>
+      <p className="hint">新闻签名涵盖实时、美国国家、国际与公共事件解读。</p>
 
       <label className="field-label" htmlFor="gender">性别</label>
       <div className="select-wrap">

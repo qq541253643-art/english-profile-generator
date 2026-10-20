@@ -21,7 +21,7 @@ function enrichPerson(
   bios: Set<string>,
   chineseBios: Set<string>,
 ): Profile {
-  const generatedBio = generateUniqueBio(person.firstName, bios, chineseBios)
+  const generatedBio = generateUniqueBio(person.firstName, bios, chineseBios, settings.bioStyle)
   const username = generateUniqueUsername({
     firstName: person.firstName,
     lastName: person.lastName,
