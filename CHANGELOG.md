@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-25
+
+### Added
+
+- 新增 600 张项目自有的 512 × 512 虚构合成人像图库，包含 420 张女性头像和 180 张男性头像；全部发布图均经过单脸检测、内容哈希和 SFace 相似度复扫。
+- 新增版本化头像清单与本地头像服务，服务器版和 Windows 本地版使用同一套静态资源，不再依赖第三方头像源生成新资料。
+
+### Changed
+
+- 生成资料时按性别和虚构年龄从本地图库匹配头像，并继续使用服务器 30 天全局去重账本避免头像重复。
+- 头像以原生 512px JPEG 提供，生成时即可使用，预览和下载不再等待客户端超分辨率处理。
+- 页面继续明确标注人物为虚构 AI 合成人像，不宣称人物是真实美国人。
+
 ## [1.3.0] - 2026-10-20
 
 ### Added
@@ -223,7 +236,8 @@
 - 加入头像授权提示、本地授权头像上传和合规边界。
 - 添加 Windows `start.bat`、自动测试与 GitHub Actions CI。
 
-[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.9...v1.3.0
 [1.2.9]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.8...v1.2.9
 [1.2.8]: https://github.com/qq541253643-art/english-profile-generator/compare/v1.2.7...v1.2.8

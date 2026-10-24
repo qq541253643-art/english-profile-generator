@@ -26,7 +26,7 @@ async function loadCatalog(): Promise<RawPerson[]> {
         const payload = await response.json() as IndexResponse
         if (!Array.isArray(payload.people)) throw new Error('合成人像目录格式错误')
         const people = payload.people.filter(isRawPerson)
-        if (people.length < 300) throw new Error('合成人像目录数量不足')
+        if (people.length !== 600) throw new Error('合成人像目录数量不足')
         return people
       } finally {
         window.clearTimeout(timeout)
@@ -69,7 +69,7 @@ export async function assignSyntheticAvatars(people: BasePerson[], excludedIds =
     const [id] = available[matchIndex]
     used.add(id)
     person.avatarUrl = `/__synthetic-avatar?id=${encodeURIComponent(id)}`
-    person.avatarSource = 'sigils-synthetic'
+    person.avatarSource = 'project-synthetic'
     assigned += 1
   }
   return assigned
@@ -77,3 +77,4 @@ export async function assignSyntheticAvatars(people: BasePerson[], excludedIds =
 
 export const SYNTHETIC_AVATAR_CREDIT = 'Portraits by Ariel Bravo Ayala — sigils-people — CC BY 4.0'
 export const SYNTHETIC_AVATAR_LICENSE_URL = 'https://creativecommons.org/licenses/by/4.0/'
+export const PROJECT_AVATAR_CREDIT = 'Fictional synthetic portrait generated for English Profile Generator. Not a real person.'

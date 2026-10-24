@@ -41,7 +41,7 @@ function uniquenessFromProfiles(profiles: Profile[]): GenerationUniqueness {
     bioKeys: profiles.map((profile) => uniquenessKey(profile.bio)),
     bioZhKeys: profiles.map((profile) => uniquenessKey(profile.bioZh)),
     avatarIds: profiles.flatMap((profile) => {
-      if (profile.avatarSource !== 'sigils-synthetic') return []
+      if (profile.avatarSource !== 'project-synthetic' && profile.avatarSource !== 'sigils-synthetic') return []
       try {
         const id = new URL(profile.avatarUrl, window.location.origin).searchParams.get('id')
         return id ? [id] : []
@@ -180,7 +180,7 @@ export default function App() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visibleProfiles = filtered.slice((page - 1) * pageSize, page * pageSize)
   const exportProfiles = selected.size > 0 ? profiles.filter((profile) => selected.has(profile.id)) : filtered
-  const exportNeedsRightsConfirmation = exportProfiles.some((profile) => ['sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource))
+  const exportNeedsRightsConfirmation = exportProfiles.some((profile) => ['project-synthetic', 'sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource))
 
   useEffect(() => setPage(1), [search, filterGender, filterSource, view])
   useEffect(() => { if (page > totalPages) setPage(totalPages) }, [page, totalPages])
@@ -471,7 +471,7 @@ export default function App() {
           {profiles.length === 0 ? <div className="empty-state"><div className="empty-illustration" aria-hidden="true"><Users /><span /></div><h3>从一套可审阅的虚构资料开始</h3><p>{isMobile ? '设置条件后生成一条资料；断网时会明确切换为本地模拟资料。' : '设置数量和条件，然后点击右上角的一键生成。断网时会明确切换为本地模拟资料。'}</p><button type="button" className="button primary" onClick={handleGenerate}><WandSparkles aria-hidden="true" />{isMobile ? '生成一条资料' : `生成 ${settings.count} 条资料`}</button></div>
             : filtered.length === 0 ? <div className="empty-state compact-empty"><Search aria-hidden="true" /><h3>没有匹配的资料</h3><p>请调整关键词或筛选条件。</p></div>
             : isMobile || view === 'cards' ? <div className="cards-list">{visibleProfiles.map((profile) => <ProfileCard key={profile.id} profile={profile} index={profiles.indexOf(profile)} busy={isGenerating}
-              avatarDownloadsAllowed={!['sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource) || avatarRightsConfirmed} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
+              avatarDownloadsAllowed={!['project-synthetic', 'sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource) || avatarRightsConfirmed} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
               onDownloadAvatar={handleDownloadAvatar} onPreviewAvatar={setPreviewProfile} />)}</div>
               : <><p className="mobile-table-hint"><Info aria-hidden="true" />表格可左右滑动，或切换至卡片查看完整资料。</p><ProfileTable profiles={visibleProfiles} selected={selected} busy={isGenerating} onCopy={copy} onDelete={(id) => remove([id])} onRegenerate={regenerate}
                 onToggle={(id) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })} onToggleAll={toggleAll} /></>}
@@ -481,7 +481,7 @@ export default function App() {
           {profiles.length > 0 && !isMobile && <section className="export-panel" aria-labelledby="export-heading">
             <div className="export-copy"><FileDown aria-hidden="true" /><div><h3 id="export-heading">导出与头像打包</h3><p>{selected.size ? `将导出所选 ${selected.size} 条` : `将导出当前筛选的 ${filtered.length} 条`}，表格与 ZIP 按同一序号对应。</p></div></div>
             <div className="rights-box">{exportNeedsRightsConfirmation
-              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解合成人像许可</strong><small>sigils-people 头像为 CC BY 4.0；图片无可见水印，但使用时须保留来源说明，不可冒充真人。</small></span></label>
+              ? <label><input type="checkbox" checked={avatarRightsConfirmed} onChange={(event) => setAvatarRightsConfirmed(event.target.checked)} /><span><strong>我已了解头像使用边界</strong><small>新头像为虚构 AI 合成人像，无可见水印；下载文件保留来源说明，不可冒充真人或用于规避平台规则。旧 sigils-people 头像仍须遵守 CC BY 4.0 署名。</small></span></label>
               : <div className="rights-safe"><ShieldCheck aria-hidden="true" /><span><strong>本地占位或旧版合成头像</strong><small>可直接导出，无需逐张上传。</small></span></div>}</div>
             <label className={`password-export ${includePasswords ? 'enabled' : ''}`}><input type="checkbox" checked={includePasswords} onChange={(event) => setIncludePasswords(event.target.checked)} /><span><strong>导出明文密码</strong><small>{includePasswords ? '警告：明文文件可能被他人读取，请安全保管并及时删除。' : '默认关闭，表格中不包含密码列。'}</small></span></label>
             <div className="export-actions"><button type="button" className="button secondary" onClick={() => exportCsv(exportProfiles, includePasswords)}><Download aria-hidden="true" />CSV</button><button type="button" className="button secondary" onClick={handleExcel}><Download aria-hidden="true" />Excel</button><button type="button" className="button primary" disabled={exportNeedsRightsConfirmation && !avatarRightsConfirmed} onClick={handleZip}><Archive aria-hidden="true" />头像 ZIP</button></div>

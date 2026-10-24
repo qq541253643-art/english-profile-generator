@@ -1,7 +1,7 @@
 import type { Profile } from '../types/profile'
 import { avatarFilename } from '../utils/avatar'
 import { downloadBlob } from './exportService'
-import { SYNTHETIC_AVATAR_CREDIT, SYNTHETIC_AVATAR_LICENSE_URL } from './syntheticAvatarService'
+import { PROJECT_AVATAR_CREDIT, SYNTHETIC_AVATAR_CREDIT, SYNTHETIC_AVATAR_LICENSE_URL } from './syntheticAvatarService'
 
 type BrowserUpscaler = {
   upscale: (image: string, options: { patchSize: number; padding: number }) => Promise<string>
@@ -66,12 +66,12 @@ function pngChunk(type: string, data: Uint8Array): Uint8Array {
   return output
 }
 
-async function addSyntheticCredit(png: Blob): Promise<Blob> {
+async function addSyntheticCredit(png: Blob, credit: string): Promise<Blob> {
   const bytes = new Uint8Array(await png.arrayBuffer())
   const iend = bytes.length - 12
   if (iend < 8 || new TextDecoder().decode(bytes.subarray(iend + 4, iend + 8)) !== 'IEND') return png
   const prefix = new TextEncoder().encode('Attribution\0\0\0\0\0')
-  const message = new TextEncoder().encode(`${SYNTHETIC_AVATAR_CREDIT} | License: ${SYNTHETIC_AVATAR_LICENSE_URL} | Modified: center-cropped and resized to 512 x 512 PNG.`)
+  const message = new TextEncoder().encode(`${credit} | Modified: center-cropped and resized to 512 x 512 PNG.`)
   const metadata = new Uint8Array(prefix.length + message.length)
   metadata.set(prefix)
   metadata.set(message, prefix.length)
@@ -82,7 +82,7 @@ async function addSyntheticCredit(png: Blob): Promise<Blob> {
   ], { type: 'image/png' })
 }
 
-async function rasterizeAvatar(blob: Blob, includeSyntheticCredit = false): Promise<Blob> {
+async function rasterizeAvatar(blob: Blob, syntheticCredit = ''): Promise<Blob> {
   const objectUrl = URL.createObjectURL(blob)
   try {
     const image = new Image()
@@ -105,7 +105,7 @@ async function rasterizeAvatar(blob: Blob, includeSyntheticCredit = false): Prom
       (png) => png ? resolve(png) : reject(new Error('高清头像转换失败。')),
       'image/png',
     ))
-    return includeSyntheticCredit ? addSyntheticCredit(png) : png
+    return syntheticCredit ? addSyntheticCredit(png, syntheticCredit) : png
   } finally {
     URL.revokeObjectURL(objectUrl)
   }
@@ -141,7 +141,13 @@ export async function avatarToBlob(url: string): Promise<Blob> {
   const response = await fetch(avatarFetchUrl(url))
   if (!response.ok) throw new Error(`头像下载失败（HTTP ${response.status}）`)
   const blob = await response.blob()
-  if (url.includes('/__synthetic-avatar?')) return rasterizeAvatar(blob, true)
+  if (url.includes('/__synthetic-avatar?')) {
+    const id = new URL(url, window.location.origin).searchParams.get('id') || ''
+    const credit = /^[fm]-\d{3}$/.test(id)
+      ? PROJECT_AVATAR_CREDIT
+      : `${SYNTHETIC_AVATAR_CREDIT} | License: ${SYNTHETIC_AVATAR_LICENSE_URL}`
+    return rasterizeAvatar(blob, credit)
+  }
   if (url.includes('randomuser.me/api/portraits/')) {
     try {
       return rasterizeAvatar(await enhancePhotoWithAi(blob))
@@ -213,8 +219,12 @@ export async function exportAvatarZip(
     }
     onProgress?.(index + 1, profiles.length)
   }
-  if (profiles.some((profile) => profile.avatarSource === 'sigils-synthetic')) {
-    zip.file('CREDITS.txt', `${SYNTHETIC_AVATAR_CREDIT}\r\nLicense: ${SYNTHETIC_AVATAR_LICENSE_URL}\r\nNo depicted person is real. Images were center-cropped and resized to 512 x 512 PNG.\r\n`)
+  if (profiles.some((profile) => ['project-synthetic', 'sigils-synthetic'].includes(profile.avatarSource))) {
+    const credits = [`${PROJECT_AVATAR_CREDIT}\r\nNo depicted person is real. Images were center-cropped and resized to 512 x 512 PNG.\r\n`]
+    if (profiles.some((profile) => profile.avatarSource === 'sigils-synthetic')) {
+      credits.push(`${SYNTHETIC_AVATAR_CREDIT}\r\nLicense: ${SYNTHETIC_AVATAR_LICENSE_URL}\r\n`)
+    }
+    zip.file('CREDITS.txt', credits.join('\r\n'))
   }
   if (included === 0) throw new Error('没有可打包的头像，请检查网络或换用本地已授权头像。')
   downloadBlob(await zip.generateAsync({ type: 'blob' }), 'english-profile-avatars.zip')

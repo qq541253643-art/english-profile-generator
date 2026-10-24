@@ -11,3 +11,7 @@ dogfood-output/
 .impeccable/review/
 .impeccable/mocks/
 release-assets/
+.venv-imagegen/
+artifacts/portrait-library-v1/
+__pycache__/
+*.pyc

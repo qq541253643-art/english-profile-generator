@@ -1,7 +1,7 @@
 {
   "name": "english-profile-generator",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "description": "Windows 本地运行的虚构英文社交账号资料生成器",
   "scripts": {
@@ -11,6 +11,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
+    "portraits:build": "node scripts/build-portrait-library.mjs",
+    "portraits:verify": "node scripts/verify-portrait-library.mjs",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major"

@@ -28,9 +28,9 @@ describe('真人照片 AI 增强', () => {
       readFile(resolve(projectRoot, 'src/services/avatarService.ts'), 'utf8'),
       readFile(resolve(projectRoot, 'scripts/synthetic-people-proxy.mjs'), 'utf8'),
     ])
-    expect(syntheticProxy).toContain('/portraits/m')
-    expect(syntheticProxy).not.toContain('/portraits/l')
-    expect(syntheticProxy).toContain('AVATAR_FETCH_ATTEMPTS = 2')
+    expect(syntheticProxy).toContain("'dist', 'portraits', 'v1'")
+    expect(syntheticProxy).toContain('parsed.people.length !== 600')
+    expect(syntheticProxy).toContain('LEGACY_FETCH_ATTEMPTS = 2')
     expect(service).toContain('Math.min(4, profiles.length)')
     expect(service).toContain("set('format', 'jpeg-v2')")
   })

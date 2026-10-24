@@ -34,13 +34,14 @@ export function ProfileCard(props: Props) {
             <img src={profileAvatarUrl(profile)} alt={`${profile.displayName} 的演示头像`} loading="lazy" />
             <span className="avatar-zoom-cue"><Maximize2 aria-hidden="true" />查看大图</span>
           </button>
-          <span className={`source-dot ${['sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource) ? 'photo' : profile.dataSource}`}>
-            {profile.avatarSource === 'sigils-synthetic' ? 'AI 合成·512px' : profile.avatarSource === 'randomuser-placeholder' ? '旧版照片' : profile.avatarSource === 'local-hd-avatar' ? '旧版合成' : '本地占位'}
+          <span className={`source-dot ${['project-synthetic', 'sigils-synthetic', 'randomuser-placeholder'].includes(profile.avatarSource) ? 'photo' : profile.dataSource}`}>
+            {profile.avatarSource === 'project-synthetic' ? '写实合成·512px' : profile.avatarSource === 'sigils-synthetic' ? '旧版 AI 合成' : profile.avatarSource === 'randomuser-placeholder' ? '旧版照片' : profile.avatarSource === 'local-hd-avatar' ? '旧版合成' : '本地占位'}
           </span>
         </div>
         <p className="mobile-avatar-tip"><Download aria-hidden="true" /><span>点开大图后<br />长按保存到相册</span></p>
-        <p className="avatar-quality-note">{profile.avatarSource === 'sigils-synthetic'
-          ? '非真人 AI 合成·原生 512px·无水印'
+        <p className="avatar-quality-note">{profile.avatarSource === 'project-synthetic'
+          ? '虚构 AI 合成·原生 512px·无可见水印'
+          : profile.avatarSource === 'sigils-synthetic' ? '旧版非真人 AI 合成头像'
           : profile.avatarSource === 'randomuser-placeholder' ? '旧版低清占位照片'
           : profile.avatarSource === 'local-hd-avatar' ? '旧版合成头像' : '断网时的本地占位头像'}</p>
       </div>

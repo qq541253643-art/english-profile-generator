@@ -35,10 +35,19 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
     const temporaryDirectory = await mkdtemp(join(tmpdir(), 'epg-server-'))
     temporaryDirectories.push(temporaryDirectory)
     const webRoot = join(temporaryDirectory, 'dist')
+    const portraitRoot = join(temporaryDirectory, 'portraits')
     const stateFile = join(temporaryDirectory, 'server-state.json')
     await mkdir(join(webRoot, 'assets'), { recursive: true })
+    await mkdir(portraitRoot, { recursive: true })
     await writeFile(join(webRoot, 'index.html'), '<!doctype html><title>测试面板</title>', 'utf8')
     await writeFile(join(webRoot, 'assets', 'app.js'), 'window.ready = true', 'utf8')
+    const portraitPeople = Array.from({ length: 600 }, (_, index) => {
+      const gender = index < 300 ? 'female' : 'male'
+      const id = `${gender === 'female' ? 'f' : 'm'}-${String((index % 300) + 1).padStart(3, '0')}`
+      return [id, '', '', '', gender, 18 + (index % 28), `${id}.jpg`, '0'.repeat(64), 4]
+    })
+    await writeFile(join(portraitRoot, 'manifest.json'), JSON.stringify({ count: 600, people: portraitPeople }), 'utf8')
+    await writeFile(join(portraitRoot, 'f-001.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]))
 
     const server = spawn(process.execPath, [
       serverScript,
@@ -46,7 +55,7 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
       '--host', '127.0.0.1',
       '--port', '0',
       '--state-file', stateFile,
-    ], { stdio: 'ignore' })
+    ], { stdio: 'ignore', env: { ...process.env, EPG_PORTRAIT_LIBRARY_DIR: portraitRoot } })
     processes.push(server)
 
     const state = await waitForState(stateFile, server)
@@ -84,6 +93,16 @@ describe('Windows 快捷方式使用的本地静态服务', () => {
 
     const invalidSyntheticAvatar = await fetch(`${state.url}/__synthetic-avatar?id=../../private`)
     expect(invalidSyntheticAvatar.status).toBe(400)
+
+    const portraitCatalog = await fetch(`${state.url}/__synthetic-people`)
+    expect(portraitCatalog.status).toBe(200)
+    expect(portraitCatalog.headers.get('x-portrait-library')).toBe('epg-v1-600')
+    expect((await portraitCatalog.json()).people).toHaveLength(600)
+
+    const portrait = await fetch(`${state.url}/__synthetic-avatar?id=f-001`)
+    expect(portrait.status).toBe(200)
+    expect(portrait.headers.get('content-type')).toBe('image/jpeg')
+    expect(portrait.headers.get('x-avatar-source')).toBe('epg-v1')
   })
 
   it('服务器模式向所有访客共享同一列表和固定密码，并仅允许创建者删除', async () => {

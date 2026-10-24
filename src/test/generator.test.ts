@@ -21,7 +21,7 @@ describe('300 条本地回退', () => {
     vi.spyOn(syntheticAvatarService, 'assignSyntheticAvatars').mockImplementation(async (people) => {
       people.forEach((person, index) => {
         person.avatarUrl = `/__synthetic-avatar?id=test-${index}`
-        person.avatarSource = 'sigils-synthetic'
+        person.avatarSource = 'project-synthetic'
       })
       return people.length
     })
@@ -37,13 +37,13 @@ describe('300 条本地回退', () => {
     expect(result.profiles.every((profile) => profile.dataSource === 'mock' && profile.age >= 18 && profile.age <= 45)).toBe(true)
     expect(new Set(result.profiles.map((profile) => profile.username)).size).toBe(300)
     expect(new Set(result.profiles.map((profile) => profile.avatarUrl)).size).toBe(300)
-    expect(result.profiles.filter((profile) => profile.avatarSource === 'sigils-synthetic')).toHaveLength(300)
+    expect(result.profiles.filter((profile) => profile.avatarSource === 'project-synthetic')).toHaveLength(300)
   })
 
   it('单条资料切换本地模拟时仍优先匹配真人风格照片', async () => {
     vi.spyOn(randomUserApi, 'fetchRandomUsers').mockRejectedValue(new Error('模拟断网'))
     const result = await generateProfiles({ ...settings, count: 1 })
-    expect(result.profiles[0]).toMatchObject({ dataSource: 'mock', avatarSource: 'sigils-synthetic' })
+    expect(result.profiles[0]).toMatchObject({ dataSource: 'mock', avatarSource: 'project-synthetic' })
     expect(result.profiles[0].avatarUrl).toBe('/__synthetic-avatar?id=test-0')
   })
 
@@ -55,6 +55,6 @@ describe('300 条本地回退', () => {
     }])
     const result = await generateProfiles({ ...settings, count: 1 })
     expect(result.profiles[0].avatarUrl).toBe('/__synthetic-avatar?id=test-0')
-    expect(result.profiles[0].avatarSource).toBe('sigils-synthetic')
+    expect(result.profiles[0].avatarSource).toBe('project-synthetic')
   })
 })

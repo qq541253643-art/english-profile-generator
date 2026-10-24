@@ -83,7 +83,7 @@ function text(value, maxLength) {
 }
 
 function validAvatarUrl(url, source) {
-  if (source === 'sigils-synthetic') return /^\/__synthetic-avatar\?id=[A-Za-z0-9._~%\-]{1,180}$/.test(url)
+  if (source === 'project-synthetic' || source === 'sigils-synthetic') return /^\/__synthetic-avatar\?id=[A-Za-z0-9._~%\-]{1,180}$/.test(url)
   if (source === 'randomuser-placeholder') return /^https:\/\/randomuser\.me\/api\/portraits\/(?:men|women)\/\d{1,4}\.jpg$/.test(url)
   if (source === 'local-placeholder') return url.startsWith('data:image/svg+xml;charset=utf-8,')
   return source === 'local-hd-avatar' && url.startsWith('data:image/png;base64,')
@@ -101,7 +101,7 @@ function sanitizeProfile(value, ownerId, now) {
   const password = validPassword(value.password) ? value.password : null
   const avatarUrl = text(value.avatarUrl, 10_000)
   const gender = value.gender === 'male' || value.gender === 'female' ? value.gender : null
-  const avatarSource = ['sigils-synthetic', 'randomuser-placeholder', 'local-hd-avatar', 'local-placeholder'].includes(value.avatarSource)
+  const avatarSource = ['project-synthetic', 'sigils-synthetic', 'randomuser-placeholder', 'local-hd-avatar', 'local-placeholder'].includes(value.avatarSource)
     ? value.avatarSource : null
   const dataSource = value.dataSource === 'api' || value.dataSource === 'mock' ? value.dataSource : null
   const age = Number(value.age)
@@ -140,7 +140,7 @@ function uniquenessKey(value) {
 }
 
 function syntheticAvatarId(profile) {
-  if (profile.avatarSource !== 'sigils-synthetic') return null
+  if (profile.avatarSource !== 'project-synthetic' && profile.avatarSource !== 'sigils-synthetic') return null
   try {
     return new URL(profile.avatarUrl, 'http://local.invalid').searchParams.get('id') || null
   } catch {

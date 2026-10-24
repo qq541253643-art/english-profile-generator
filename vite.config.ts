@@ -1,27 +1,31 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { handleSyntheticAvatar } from './scripts/synthetic-people-proxy.mjs'
+import { handleSyntheticAvatar, handleSyntheticCatalog } from './scripts/synthetic-people-proxy.mjs'
 
-function compatibleAvatarDevProxy() {
+function localPortraitDevProxy() {
   return {
     name: 'compatible-avatar-dev-proxy',
     configureServer(server: { middlewares: { use: (handler: (request: { url?: string; method?: string }, response: import('node:http').ServerResponse, next: () => void) => void) => void } }) {
       server.middlewares.use((request, response, next) => {
         const requestUrl = new URL(request.url || '/', 'http://127.0.0.1')
-        if (requestUrl.pathname !== '/__synthetic-avatar') return next()
+        if (requestUrl.pathname !== '/__synthetic-avatar' && requestUrl.pathname !== '/__synthetic-people') return next()
         if (request.method !== 'GET' && request.method !== 'HEAD') {
           response.writeHead(405, { Allow: 'GET, HEAD' })
           return response.end('Method Not Allowed')
         }
-        void handleSyntheticAvatar(requestUrl, response, request.method)
+        if (requestUrl.pathname === '/__synthetic-people') {
+          void handleSyntheticCatalog(requestUrl, response, request.method)
+        } else {
+          void handleSyntheticAvatar(requestUrl, response, request.method)
+        }
       })
     },
   }
 }
 
 export default defineConfig({
-  plugins: [compatibleAvatarDevProxy(), react(), tailwindcss()],
+  plugins: [localPortraitDevProxy(), react(), tailwindcss()],
   build: {
     target: 'safari15',
     cssTarget: 'safari15',
@@ -47,12 +51,6 @@ export default defineConfig({
             return '/__invalid_avatar__'
           }
         },
-      },
-      '/__synthetic-people': {
-        target: 'https://ambravo.github.io',
-        changeOrigin: true,
-        secure: true,
-        rewrite: () => '/sigils-people/people/index.json',
       },
     },
   },
