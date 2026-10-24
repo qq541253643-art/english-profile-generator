@@ -7,7 +7,7 @@ English Profile Generator 是一个在 Windows 本地运行的中文网页工具
 打开 Windows PowerShell，粘贴下面这一条命令并回车：
 
 ```powershell
-irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.3.0/install.ps1 | iex
+irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/v1.4.0/install.ps1 | iex
 ```
 
 安装器无需管理员权限，会自动完成以下操作：
@@ -27,7 +27,7 @@ irm https://raw.githubusercontent.com/qq541253643-art/english-profile-generator/
 - Windows 本地版检测到局域网地址时也会显示二维码，但要求手机与电脑处于同一局域网。
 - 手机端固定为每次生成一条资料，隐藏批量数量、表格和批量导出；服务器桌面端支持 1 / 10，Windows 本地桌面端继续支持 1 / 10 / 100 / 300。
 - 手机点击头像可打开大图，长按大图后按系统菜单保存到照片或下载目录。
-- 新生成资料使用 sigils-people 原生 512px AI 合成人像，生成过程会先准备好 512 × 512 PNG 再显示；图片没有可见水印。
+- 新生成资料使用项目内置的 600 张写实合成人像库，原图为 512 × 512 JPEG；生成过程会先准备好 512 × 512 PNG 再显示，图片没有可见水印。
 - 服务器版使用内部共享列表，打开地址的成员看到同一资料和同一密码，统一保存 3 天；Windows 本地版历史仍只保存在本机 IndexedDB。
 - 服务器版与 Windows 本地版使用同一 GitHub Release 版本，分别自动检查更新。
 
@@ -62,7 +62,7 @@ Windows 用户也可以下载源码后双击 `start.bat`；这种方式用于开
 sudo bash deploy/server/install.sh profile.example.com
 ```
 
-服务器将资料和首次生成的密码同步到内部共享列表并保留 3 天；打开服务器地址的成员看到同一条资料时，密码保持一致。姓名、用户名、头像和中英文 Bio 另行执行 30 天全局去重。浏览器生成的头像 Blob 不上传。启动服务会把头像源的原生 512px AVIF 转成兼容 JPEG，浏览器再在当前会话中生成 512 × 512 PNG，因此也支持停留在 iOS 15 的 iPhone 7。转换结果仅在内存保留最近 24 张，不写入长期磁盘缓存。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
+服务器将资料和首次生成的密码同步到内部共享列表并保留 3 天；打开服务器地址的成员看到同一条资料时，密码保持一致。姓名、用户名、头像和中英文 Bio 另行执行 30 天全局去重。浏览器生成的头像 Blob 不上传。项目内置头像由服务直接提供兼容旧版 Safari 的 512 × 512 JPEG，浏览器在当前会话中生成同尺寸 PNG，因此也支持停留在 iOS 15 的 iPhone 7。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
 ## 已实现功能
 
@@ -77,7 +77,7 @@ sudo bash deploy/server/install.sh profile.example.com
 - Windows 本地版以 IndexedDB 保存历史和生成时的密码，恢复后密码不变；自动保留最近 90 天、最多 500 条且总量不超过约 50 MB。服务器版改用内部成员共同可见、保留 3 天的共享列表，跨设备显示同一密码；独立去重账本保证姓名、用户名、头像和 Bio 30 天内不重复。
 - CSV / Excel 导出；只有手动启用后才导出明文密码列。
 - 单张头像下载和 ZIP 打包，与表格序号、文件名一一对应。
-- sigils-people 高清合成人像源图为 512px AVIF，启动服务先转为旧版 Safari 兼容的高质量 JPEG，浏览器统一输出 512 × 512 PNG；生成完成前即处理头像，无可见水印，无需头像上传或付费 API。桌面批量生成最多同时准备 4 张头像，源站瞬时断连会自动重试一次。
+- 项目内置 600 张 512 × 512 写实合成头像（420 女、180 男），生成完成前即处理为可预览和下载的同尺寸 PNG；无可见水印，无需头像上传、外部头像服务或付费 API。旧资料中的第三方头像仍按原来源规则显示。
 - API 超时、网络错误、字段缺失、年龄筛选重试上限和重复头像 URL 处理。
 - 断网时用首字母占位图补齐，并在每条资料上明确标注“本地模拟”。
 - Windows 一条命令安装、桌面快捷方式、默认浏览器启动和 Release 自动更新。
@@ -92,7 +92,7 @@ https://randomuser.me/api/1.4/?nat=us&results=1&inc=gender,name,dob,picture,nat
 ```
 
 - `nat=us` 只用于生成英文姓名与虚构年龄，不表示合成人像的国籍。
-- 头像来自 [sigils-people](https://ambravo.github.io/sigils-people/)，为不对应真实人物的合成人像，按 CC BY 4.0 使用；界面和 ZIP 中保留来源说明，图片画面不添加水印。
+- 新头像来自项目内置的 600 张虚构合成人像库，不对应真实人物；界面和 ZIP 中保留合成来源说明，图片画面不添加水印。旧资料若仍引用 [sigils-people](https://ambravo.github.io/sigils-people/)，继续按 CC BY 4.0 保留署名。
 - 不抓取社交平台用户照片，不生成政府 ID、电话或冒名验证资料。
 - 不提供批量注册、风控规避或自动化平台操作。
 
@@ -102,7 +102,7 @@ https://randomuser.me/api/1.4/?nat=us&results=1&inc=gender,name,dob,picture,nat
 - Tailwind CSS 4（设计令牌与布局样式保留在本地 CSS）
 - IndexedDB (`idb`)
 - `write-excel-file` 与 JSZip，均在导出时懒加载
-- 原生 512px AVIF 合成人像，启动服务兼容转码后由浏览器生成 512px PNG
+- 600 张原生 512px JPEG 合成人像，由浏览器生成 512px PNG
 - Lucide React 图标
 - Vitest + Testing Library
 
@@ -132,4 +132,4 @@ git push --follow-tags
 
 ## 许可证
 
-项目代码使用 [MIT License](./LICENSE)。sigils-people 人像使用 CC BY 4.0，署名为“Portraits by Ariel Bravo Ayala — sigils-people — CC BY 4.0”。远程 API 数据不因本仓库许可证而获得任何额外授权。
+项目代码使用 [MIT License](./LICENSE)。旧资料引用的 sigils-people 人像使用 CC BY 4.0，署名为“Portraits by Ariel Bravo Ayala — sigils-people — CC BY 4.0”。远程 API 数据不因本仓库许可证而获得任何额外授权。
