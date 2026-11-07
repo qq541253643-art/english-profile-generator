@@ -64,6 +64,16 @@ sudo bash deploy/server/install.sh profile.example.com
 
 服务器将资料和首次生成的密码同步到内部共享列表并保留 3 天；打开服务器地址的成员看到同一条资料时，密码保持一致。姓名、用户名、头像和中英文 Bio 另行执行 30 天全局去重。浏览器生成的头像 Blob 不上传。项目内置头像由服务直接提供兼容旧版 Safari 的 512 × 512 JPEG，浏览器在当前会话中生成同尺寸 PNG，因此也支持停留在 iOS 15 的 iPhone 7。更新脚本会先安装依赖、运行安全审计、自动测试和生产构建，全部通过后才切换当前版本并重启服务；磁盘只保留当前版本和一个回退版本，安装归档、依赖缓存与过期暂存目录会自动清理。
 
+### 与现有 Docker Caddy 共存
+
+如果服务器已有 Caddy、Nginx 或其他站点占用 80/443，不要直接运行上面的全新服务器安装器。项目提供共存安装器，为资料站使用独立端口和独立子域名，不安装 Nginx，也不替换现有站点：
+
+```bash
+sudo bash deploy/server/install-existing-caddy.sh profile.example.com
+```
+
+默认适配 GitHub 上的 `static-isp-proxy-manager-caddy-1` 容器和 `172.18.0.1:6820` 上游，可通过 `CADDY_CONTAINER`、`CADDYFILE`、`DOCKER_GATEWAY`、`PORT` 环境变量覆盖。安装器会备份现有 Caddyfile、给资料服务设置 CPU/内存上限，并在 UFW 启用时只允许 Docker 内网访问上游端口。首次部署需要先把子域名的 A 记录指向服务器公网 IP。
+
 ## 已实现功能
 
 - 服务器桌面端数量 1 / 10，Windows 本地桌面端数量 1 / 10 / 100 / 300；手机端固定为 1。性别随机 / 男 / 女，虚构年龄 18–45。
